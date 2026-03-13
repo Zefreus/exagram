@@ -489,7 +489,7 @@ async def get_consent_config():
 
 # ============== EXAM ROUTES ==============
 
-@api_router.post("/exa_exams/upload")
+@api_router.post("/exams/upload")
 async def upload_exam(
     files: List[UploadFile] = File(...),
     confirm_same_exam: bool = Form(True),
@@ -666,8 +666,8 @@ Retorne JSON:
         logging.error(f"Error processing exam: {e}")
         raise HTTPException(status_code=500, detail=f"Erro ao processar exame: {str(e)}")
 
-@api_router.get("/exa_exams")
-async def get_exa_exams(user = Depends(get_current_user)):
+@api_router.get("/exams")
+async def get_exams(user = Depends(get_current_user)):
     exa_exams = await execute_query(
         """SELECT id, summary, created_at FROM exa_exams 
            WHERE user_id = %s 
@@ -681,7 +681,7 @@ async def get_exa_exams(user = Depends(get_current_user)):
         "created_at": e['created_at'].isoformat() if e['created_at'] else None
     } for e in exa_exams]
 
-@api_router.get("/exa_exams/{exam_id}")
+@api_router.get("/exams/{exam_id}")
 async def get_exam(exam_id: str, user = Depends(get_current_user)):
     exam = await execute_query(
         """SELECT * FROM exa_exams WHERE id = %s AND user_id = %s""",
@@ -731,7 +731,7 @@ async def get_exam(exam_id: str, user = Depends(get_current_user)):
         "exa_specialists": [dict(s) for s in exa_specialists]
     }
 
-@api_router.post("/exa_exams/{exam_id}/chat")
+@api_router.post("/exams/{exam_id}/chat")
 async def chat_with_exam(exam_id: str, message: ChatMessage, user = Depends(get_current_user)):
     # Get exam
     exam = await execute_query(
