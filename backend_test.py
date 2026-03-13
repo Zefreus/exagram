@@ -316,11 +316,15 @@ class ExagramAPITester:
         # Admin authentication and endpoints
         if self.test_admin_login():
             self.test_admin_endpoints()
+            self.test_admin_specialist_crud()
         
         # User registration and authentication
         if self.test_user_registration_flow():
             self.test_user_endpoints()
             self.test_consent_flow()
+        
+        # Test provided user credentials
+        self.test_provided_user_credentials()
         
         # Print summary
         print("\n" + "=" * 60)
