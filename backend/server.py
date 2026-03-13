@@ -143,7 +143,7 @@ async def init_database():
             FOREIGN KEY (tenant_id) REFERENCES exa_tenants(id) ON DELETE CASCADE,
             UNIQUE KEY unique_tenant_month (tenant_id, month_year)
         )""",
-        """CREATE TABLE IF NOT EXISTS consents (
+        """CREATE TABLE IF NOT EXISTS exa_consents (
             id VARCHAR(36) PRIMARY KEY,
             user_id VARCHAR(36) NOT NULL,
             timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -423,7 +423,7 @@ async def get_me(user = Depends(get_current_user)):
 async def grant_consent(data: ConsentGrant, request: Request, user = Depends(get_current_user)):
     consent_id = str(uuid.uuid4())
     await execute_query(
-        """INSERT INTO consents (id, user_id, consent_version, ip_address, user_agent, action, type)
+        """INSERT INTO exa_consents (id, user_id, consent_version, ip_address, user_agent, action, type)
            VALUES (%s, %s, %s, %s, %s, 'granted', %s)""",
         (consent_id, user['user_id'], CONSENT_VERSION, 
          data.ip_address or request.client.host,
@@ -431,13 +431,13 @@ async def grant_consent(data: ConsentGrant, request: Request, user = Depends(get
          data.type)
     )
     
-    # Check if all consents are granted
-    consents = await execute_query(
-        "SELECT DISTINCT type FROM consents WHERE user_id = %s AND action = 'granted'",
+    # Check if all exa_consents are granted
+    exa_consents = await execute_query(
+        "SELECT DISTINCT type FROM exa_consents WHERE user_id = %s AND action = 'granted'",
         (user['user_id'],),
         fetch=True
     )
-    consent_types = [c['type'] for c in consents]
+    consent_types = [c['type'] for c in exa_consents]
     
     if all(t in consent_types for t in ['terms', 'privacy', 'sensitive_data']):
         await execute_query(
@@ -449,8 +449,8 @@ async def grant_consent(data: ConsentGrant, request: Request, user = Depends(get
 
 @api_router.get("/consent/status")
 async def get_consent_status(user = Depends(get_current_user)):
-    consents = await execute_query(
-        """SELECT type, action, timestamp FROM consents 
+    exa_consents = await execute_query(
+        """SELECT type, action, timestamp FROM exa_consents 
            WHERE user_id = %s 
            ORDER BY timestamp DESC""",
         (user['user_id'],),
@@ -459,7 +459,7 @@ async def get_consent_status(user = Depends(get_current_user)):
     
     # Get latest status for each type
     status = {}
-    for consent in consents:
+    for consent in exa_consents:
         if consent['type'] not in status:
             status[consent['type']] = {
                 'granted': consent['action'] == 'granted',
@@ -475,7 +475,7 @@ async def get_consent_status(user = Depends(get_current_user)):
     return {
         "all_granted": bool(user_data['consent_granted']),
         "consent_version": CONSENT_VERSION,
-        "consents": status
+        "exa_consents": status
     }
 
 @api_router.get("/consent/config")
@@ -1144,8 +1144,8 @@ async def export_user_data(user = Depends(get_current_user)):
         fetch=True
     )
     
-    consents = await execute_query(
-        "SELECT type, action, timestamp, consent_version FROM consents WHERE user_id = %s",
+    exa_consents = await execute_query(
+        "SELECT type, action, timestamp, consent_version FROM exa_consents WHERE user_id = %s",
         (user['user_id'],),
         fetch=True
     )
@@ -1169,12 +1169,12 @@ async def export_user_data(user = Depends(get_current_user)):
             "summary": e['summary'],
             "created_at": e['created_at'].isoformat() if e['created_at'] else None
         } for e in exa_exams],
-        "consents": [{
+        "exa_consents": [{
             "type": c['type'],
             "action": c['action'],
             "version": c['consent_version'],
             "timestamp": c['timestamp'].isoformat() if c['timestamp'] else None
-        } for c in consents],
+        } for c in exa_consents],
         "exported_at": datetime.now(timezone.utc).isoformat()
     }
 
