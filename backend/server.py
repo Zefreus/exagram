@@ -76,6 +76,96 @@ MP_WEBHOOK_SECRET = os.environ.get('MP_WEBHOOK_SECRET', '')
 # Database pool
 db_pool = None
 
+# ============== AI HELPER FUNCTIONS ==============
+
+async def call_ai_with_fallback(system_message: str, user_message: str, session_id: str = None, file_contents: list = None):
+    """
+    Call AI with fallback: Claude -> ChatGPT -> Emergent
+    Returns tuple: (response_text, provider_used)
+    """
+    from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType
+    
+    if session_id is None:
+        session_id = f"ai_{str(uuid.uuid4())}"
+    
+    errors = []
+    
+    for provider in AI_PROVIDERS:
+        if not provider["key"]:
+            continue
+            
+        try:
+            logging.info(f"Trying AI provider: {provider['name']} ({provider['model']})")
+            
+            chat = LlmChat(
+                api_key=provider["key"],
+                session_id=session_id,
+                system_message=system_message
+            ).with_model(provider["provider"], provider["model"])
+            
+            if file_contents:
+                msg = UserMessage(text=user_message, file_contents=file_contents)
+            else:
+                msg = UserMessage(text=user_message)
+            
+            response = await chat.send_message(msg)
+            
+            logging.info(f"AI call successful with {provider['name']}")
+            return response, provider['name']
+            
+        except Exception as e:
+            error_msg = str(e)
+            errors.append(f"{provider['name']}: {error_msg[:100]}")
+            logging.warning(f"AI provider {provider['name']} failed: {error_msg[:200]}")
+            
+            # Check if it's a credit/quota error - continue to next provider
+            if "credit" in error_msg.lower() or "quota" in error_msg.lower() or "balance" in error_msg.lower():
+                continue
+            # For other errors, also try next provider
+            continue
+    
+    # All providers failed
+    raise Exception(f"All AI providers failed: {'; '.join(errors)}")
+
+async def call_gemini_extraction(system_message: str, user_message: str, file_contents: list):
+    """
+    Call Gemini for file extraction (vision)
+    Falls back to Emergent if direct key fails
+    """
+    from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType
+    
+    keys_to_try = [
+        ("gemini_direct", GEMINI_API_KEY),
+        ("emergent", EMERGENT_LLM_KEY)
+    ]
+    
+    for key_name, api_key in keys_to_try:
+        if not api_key:
+            continue
+            
+        try:
+            logging.info(f"Trying Gemini extraction with {key_name}")
+            
+            chat = LlmChat(
+                api_key=api_key,
+                session_id=f"extraction_{str(uuid.uuid4())}",
+                system_message=system_message
+            ).with_model("gemini", "gemini-2.5-flash")
+            
+            response = await chat.send_message(UserMessage(
+                text=user_message,
+                file_contents=file_contents
+            ))
+            
+            logging.info(f"Gemini extraction successful with {key_name}")
+            return response, key_name
+            
+        except Exception as e:
+            logging.warning(f"Gemini extraction with {key_name} failed: {str(e)[:200]}")
+            continue
+    
+    raise Exception("All Gemini extraction attempts failed")
+
 async def get_db_pool():
     global db_pool
     if db_pool is None:
