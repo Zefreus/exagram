@@ -275,9 +275,17 @@ class ChatMessage(BaseModel):
 class CheckoutRequest(BaseModel):
     package_id: str
     origin_url: str
+    coupon_code: Optional[str] = None
 
-class SubscriptionRequest(BaseModel):
-    origin_url: str
+class CouponCreate(BaseModel):
+    code: str
+    discount_type: str  # 'percent' or 'fixed'
+    discount_value: float
+    max_redemptions: Optional[int] = None
+    expires_at: Optional[str] = None
+
+class CouponValidate(BaseModel):
+    code: str
 
 # ============== AUTH HELPERS ==============
 
