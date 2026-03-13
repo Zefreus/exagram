@@ -104,13 +104,13 @@ async def init_database():
             id VARCHAR(36) PRIMARY KEY,
             user_id VARCHAR(36) NOT NULL,
             tenant_id VARCHAR(36) NOT NULL,
-            extracted_data JSON,
-            ai_analysis TEXT,
-            flags JSON,
+            extracted_data LONGTEXT,
+            ai_analysis LONGTEXT,
+            flags LONGTEXT,
             summary TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-            FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
+            INDEX idx_user_id (user_id),
+            INDEX idx_tenant_id (tenant_id)
         )""",
         """CREATE TABLE IF NOT EXISTS chat_messages (
             id VARCHAR(36) PRIMARY KEY,
