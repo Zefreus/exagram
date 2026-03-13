@@ -20,7 +20,7 @@ const SPECIALTIES = [
 ];
 
 const STATES = [
-    { value: '', label: 'Todos os estados' },
+    { value: 'all', label: 'Todos os estados' },
     { value: 'SP', label: 'São Paulo' },
     { value: 'RJ', label: 'Rio de Janeiro' },
     { value: 'MG', label: 'Minas Gerais' },
