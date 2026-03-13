@@ -49,8 +49,24 @@ CREDIT_EXPIRY_DAYS = int(os.environ.get('CREDIT_EXPIRY_DAYS', 365))
 # Anthropic Configuration
 ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY')
 
-# Emergent LLM Key (universal key for all providers)
-EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY', ANTHROPIC_API_KEY)
+# OpenAI Configuration
+OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
+
+# Gemini Configuration
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
+
+# Emergent LLM Key (universal key for all providers - fallback)
+EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY')
+
+# AI Provider priority: Claude -> ChatGPT -> Emergent
+AI_PROVIDERS = [
+    {"name": "claude", "key": ANTHROPIC_API_KEY, "model": "claude-4-sonnet-20250514", "provider": "anthropic"},
+    {"name": "chatgpt", "key": OPENAI_API_KEY, "model": "gpt-4o", "provider": "openai"},
+    {"name": "emergent", "key": EMERGENT_LLM_KEY, "model": "claude-4-sonnet-20250514", "provider": "anthropic"}
+]
+
+# Gemini for extraction (uses direct key)
+GEMINI_EXTRACTION_KEY = GEMINI_API_KEY or EMERGENT_LLM_KEY
 
 # Mercado Pago Configuration
 MP_ACCESS_TOKEN = os.environ.get('MP_ACCESS_TOKEN')
