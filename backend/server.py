@@ -176,6 +176,17 @@ async def init_database():
             metadata LONGTEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             INDEX idx_tenant_id (tenant_id)
+        )""",
+        """CREATE TABLE IF NOT EXISTS exa_coupons (
+            id VARCHAR(36) PRIMARY KEY,
+            code VARCHAR(50) UNIQUE NOT NULL,
+            discount_type ENUM('percent', 'fixed') NOT NULL,
+            discount_value DECIMAL(10,2) NOT NULL,
+            max_redemptions INT DEFAULT NULL,
+            times_redeemed INT DEFAULT 0,
+            expires_at DATETIME DEFAULT NULL,
+            active BOOLEAN DEFAULT TRUE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )"""
     ]
     for query in queries:
