@@ -607,7 +607,7 @@ Retorne APENAS o JSON, sem markdown ou explicações."""
         
         # Analyze with Claude for summary and flags
         analysis_chat = LlmChat(
-            api_key=ANTHROPIC_API_KEY,
+            api_key=EMERGENT_LLM_KEY,
             session_id=f"analysis_{str(uuid.uuid4())}",
             system_message="""Você é um assistente de saúde empático e acolhedor. Analise os valores do hemograma e forneça:
 1. Um resumo caloroso e tranquilizador em português brasileiro (como um amigo bem-informado falaria)
