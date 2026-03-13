@@ -928,7 +928,30 @@ async def admin_delete_tenant(tenant_id: str, admin = Depends(get_current_admin)
         (str(uuid.uuid4()), exam_count['count'], tenant_id)
     )
     
-    # Delete tenant (cascades to exa_users, exa_exams, etc.)
+    # Get user_id for this tenant
+    user = await execute_query(
+        "SELECT id FROM exa_users WHERE tenant_id = %s",
+        (tenant_id,),
+        fetchone=True
+    )
+    
+    if user:
+        user_id = user['id']
+        # Delete in order to respect foreign key constraints
+        # 1. Delete chat messages (references exam_id)
+        await execute_query("DELETE FROM exa_chat_messages WHERE user_id = %s", (user_id,))
+        # 2. Delete exams (references user_id and tenant_id)
+        await execute_query("DELETE FROM exa_exams WHERE user_id = %s", (user_id,))
+        # 3. Delete consents (references user_id)
+        await execute_query("DELETE FROM exa_consents WHERE user_id = %s", (user_id,))
+        # 4. Delete users (references tenant_id)
+        await execute_query("DELETE FROM exa_users WHERE tenant_id = %s", (tenant_id,))
+    
+    # 5. Delete usage tracking
+    await execute_query("DELETE FROM exa_usage_tracking WHERE tenant_id = %s", (tenant_id,))
+    # 6. Delete payment transactions
+    await execute_query("DELETE FROM exa_payment_transactions WHERE tenant_id = %s", (tenant_id,))
+    # 7. Finally delete tenant
     await execute_query("DELETE FROM exa_tenants WHERE id = %s", (tenant_id,))
     return {"success": True}
 
