@@ -808,8 +808,8 @@ Análise: {json.dumps(analysis, ensure_ascii=False)}"""
 
 # ============== SPECIALISTS ROUTES ==============
 
-@api_router.get("/exa_specialists")
-async def get_exa_specialists(
+@api_router.get("/specialists")
+async def get_specialists(
     specialty: Optional[str] = None,
     city: Optional[str] = None,
     state: Optional[str] = None
@@ -832,7 +832,7 @@ async def get_exa_specialists(
     exa_specialists = await execute_query(query, tuple(params) if params else None, fetch=True)
     return [dict(s) for s in exa_specialists]
 
-@api_router.get("/exa_specialists/{specialist_id}")
+@api_router.get("/specialists/{specialist_id}")
 async def get_specialist(specialist_id: str):
     specialist = await execute_query(
         "SELECT * FROM exa_specialists WHERE id = %s AND active = TRUE",
@@ -863,8 +863,8 @@ async def admin_overview(admin = Depends(get_current_admin)):
         "exa_exams_this_month": exa_exams_this_month['count']
     }
 
-@api_router.get("/admin/exa_tenants")
-async def admin_get_exa_tenants(admin = Depends(get_current_admin)):
+@api_router.get("/admin/tenants")
+async def admin_get_tenants(admin = Depends(get_current_admin)):
     exa_tenants = await execute_query(
         """SELECT t.*, u.email as user_email, 
            (SELECT COUNT(*) FROM exa_exams WHERE tenant_id = t.id) as exam_count
@@ -875,7 +875,7 @@ async def admin_get_exa_tenants(admin = Depends(get_current_admin)):
     )
     return [dict(t) for t in exa_tenants]
 
-@api_router.post("/admin/exa_tenants")
+@api_router.post("/admin/tenants")
 async def admin_create_tenant(data: TenantCreate, admin = Depends(get_current_admin)):
     # Check if email exists
     existing = await execute_query(
@@ -903,7 +903,7 @@ async def admin_create_tenant(data: TenantCreate, admin = Depends(get_current_ad
     
     return {"tenant_id": tenant_id, "user_id": user_id, "email": data.email}
 
-@api_router.patch("/admin/exa_tenants/{tenant_id}")
+@api_router.patch("/admin/tenants/{tenant_id}")
 async def admin_update_tenant(tenant_id: str, active: bool, admin = Depends(get_current_admin)):
     await execute_query(
         "UPDATE exa_tenants SET active = %s WHERE id = %s",
@@ -911,7 +911,7 @@ async def admin_update_tenant(tenant_id: str, active: bool, admin = Depends(get_
     )
     return {"success": True}
 
-@api_router.delete("/admin/exa_tenants/{tenant_id}")
+@api_router.delete("/admin/tenants/{tenant_id}")
 async def admin_delete_tenant(tenant_id: str, admin = Depends(get_current_admin)):
     # Log deletion
     exam_count = await execute_query(
@@ -930,7 +930,7 @@ async def admin_delete_tenant(tenant_id: str, admin = Depends(get_current_admin)
     return {"success": True}
 
 # Admin Specialists CRUD
-@api_router.post("/admin/exa_specialists")
+@api_router.post("/admin/specialists")
 async def admin_create_specialist(data: SpecialistCreate, admin = Depends(get_current_admin)):
     specialist_id = str(uuid.uuid4())
     await execute_query(
@@ -941,7 +941,7 @@ async def admin_create_specialist(data: SpecialistCreate, admin = Depends(get_cu
     )
     return {"id": specialist_id}
 
-@api_router.patch("/admin/exa_specialists/{specialist_id}")
+@api_router.patch("/admin/specialists/{specialist_id}")
 async def admin_update_specialist(specialist_id: str, data: SpecialistUpdate, admin = Depends(get_current_admin)):
     updates = []
     params = []
@@ -957,7 +957,7 @@ async def admin_update_specialist(specialist_id: str, data: SpecialistUpdate, ad
         )
     return {"success": True}
 
-@api_router.delete("/admin/exa_specialists/{specialist_id}")
+@api_router.delete("/admin/specialists/{specialist_id}")
 async def admin_delete_specialist(specialist_id: str, admin = Depends(get_current_admin)):
     await execute_query("DELETE FROM exa_specialists WHERE id = %s", (specialist_id,))
     return {"success": True}
