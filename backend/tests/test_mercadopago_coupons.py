@@ -8,7 +8,7 @@ import os
 import uuid
 from datetime import datetime, timedelta
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://exagram-blood.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://hemograma-ai.preview.emergentagent.com')
 
 # Test credentials
 TEST_USER_EMAIL = f"test_mp_{uuid.uuid4().hex[:8]}@exagram.com"
@@ -197,7 +197,7 @@ class TestMercadoPagoCheckout:
         response = requests.post(f"{BASE_URL}/api/payments/checkout",
             json={
                 "package_id": "single",
-                "origin_url": "https://exagram-blood.preview.emergentagent.com"
+                "origin_url": "https://hemograma-ai.preview.emergentagent.com"
             },
             headers=headers
         )
@@ -228,7 +228,7 @@ class TestMercadoPagoCheckout:
         response = requests.post(f"{BASE_URL}/api/payments/checkout",
             json={
                 "package_id": "pack3",
-                "origin_url": "https://exagram-blood.preview.emergentagent.com",
+                "origin_url": "https://hemograma-ai.preview.emergentagent.com",
                 "coupon_code": "TESTE10"
             },
             headers=headers
@@ -255,7 +255,7 @@ class TestMercadoPagoCheckout:
         response = requests.post(f"{BASE_URL}/api/payments/checkout",
             json={
                 "package_id": "invalid_package",
-                "origin_url": "https://exagram-blood.preview.emergentagent.com"
+                "origin_url": "https://hemograma-ai.preview.emergentagent.com"
             },
             headers=headers
         )
@@ -269,7 +269,7 @@ class TestMercadoPagoCheckout:
         response = requests.post(f"{BASE_URL}/api/payments/checkout",
             json={
                 "package_id": "single",
-                "origin_url": "https://exagram-blood.preview.emergentagent.com"
+                "origin_url": "https://hemograma-ai.preview.emergentagent.com"
             }
         )
         
@@ -465,7 +465,7 @@ class TestCouponWithFixedDiscount:
         checkout_response = requests.post(f"{BASE_URL}/api/payments/checkout",
             json={
                 "package_id": "single",
-                "origin_url": "https://exagram-blood.preview.emergentagent.com",
+                "origin_url": "https://hemograma-ai.preview.emergentagent.com",
                 "coupon_code": coupon_code
             },
             headers=user_headers

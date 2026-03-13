@@ -8,7 +8,7 @@ import os
 import uuid
 from datetime import datetime
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://exagram-blood.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://hemograma-ai.preview.emergentagent.com')
 
 # Test credentials
 TEST_USER_EMAIL = f"test_user_{uuid.uuid4().hex[:8]}@exagram.com"

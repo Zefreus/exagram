@@ -15,7 +15,7 @@ import uuid
 import time
 from datetime import datetime, timedelta
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://exagram-blood.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://hemograma-ai.preview.emergentagent.com')
 
 # Test credentials - existing user with exam
 TEST_USER_EMAIL = "final_test_1773422756@exagram.com"
@@ -498,7 +498,7 @@ class TestCheckoutCreation:
         response = requests.post(f"{BASE_URL}/api/payments/checkout",
             json={
                 "package_id": "single",
-                "origin_url": "https://exagram-blood.preview.emergentagent.com"
+                "origin_url": "https://hemograma-ai.preview.emergentagent.com"
             },
             headers=headers
         )
@@ -520,7 +520,7 @@ class TestCheckoutCreation:
         response = requests.post(f"{BASE_URL}/api/payments/checkout",
             json={
                 "package_id": "pack3",
-                "origin_url": "https://exagram-blood.preview.emergentagent.com",
+                "origin_url": "https://hemograma-ai.preview.emergentagent.com",
                 "coupon_code": "TESTE10"
             },
             headers=headers

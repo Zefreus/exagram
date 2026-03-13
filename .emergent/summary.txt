@@ -5,183 +5,179 @@ The user wants to build a single-purpose multi-tenant SaaS web application calle
 -   **Target User**: Individuals who have received blood exam results and want to understand them before a doctor's appointment.
 -   **Architecture**: Multi-tenant with 'Admin' and 'Tenant' roles. Admins manage tenants, and each tenant has a single user account.
 -   **Tech Stack**:
-    -   Frontend: Next.js with TypeScript and Tailwind CSS.
-    -   Backend: Next.js API routes.
+    -   Frontend: React with TypeScript and Tailwind CSS. (Agent used JavaScript).
+    -   Backend: FastAPI (Python).
     -   Database: External MySQL.
-    -   AI: Anthropic Claude API for exam analysis and text extraction from PDFs/images.
-    -   Payments: Stripe for one-time credit purchases and an optional subscription.
--   **Core Feature**: A user uploads their exam (PDF or images), a credit is consumed, Claude Vision extracts the data, the AI provides a warm, conversational analysis, and a chat interface opens for follow-up questions. Exam files are deleted immediately after processing.
--   **Specialist Matching**: The system should suggest relevant medical specialists based on abnormal exam results.
--   **Billing Model**: A credit-based system with one-time purchase packages and an optional monthly subscription. New tenants get one free credit.
--   **Admin Dashboard**: For managing tenants, specialists, and viewing aggregated system metrics. Stripe coupons should be managed via API.
--   **Tenant Dashboard**: For viewing exam history, credit balance, and purchasing more credits.
--   **LGPD Compliance**: Strict adherence to Brazilian data protection law, including explicit consent for sensitive health data, user rights (access, export, delete), and data minimization.
--   **UI/UX**: Clean, warm, and human-centric design in Brazilian Portuguese. Specific colors and fonts are provided.
+    -   AI: Fallback logic: Anthropic Claude -> OpenAI ChatGPT -> Emergent LLM.
+    -   Payments: Mercado Pago for one-time credit purchases.
+-   **Core Feature**: A user uploads their exam (PDF or images), a credit is consumed, AI extracts the data, provides a conversational analysis, and a chat interface opens for follow-up questions.
+-   **Specialist Matching**: Suggest medical specialists based on abnormal exam results.
+-   **Billing Model**: A credit-based system with one-time purchase packages. New tenants get one free credit. Coupon system for discounts.
+-   **Admin Dashboard**: For managing tenants, specialists, and coupons.
+-   **LGPD Compliance**: Strict adherence to Brazilian data protection law.
 
 **User's preferred language**: Portuguese (Brazil)
 
 **what currently exists?**
-A full-stack application foundation has been created.
--   **Backend**: A single-file FastAPI application () is set up with endpoints for user/admin authentication, and listing payment packages. It connects to the user-provided external MySQL database.
--   **Database**: All required tables have been created in the MySQL database with the prefix  as requested by the user.
--   **Frontend**: A React application with placeholder pages for all major features: Landing, Login, Register, Consent, User Dashboard, Admin Dashboard, Exam Results, etc. The routing is set up in .
--   **Styling**: Basic CSS is in place, using the color scheme from the product requirements.
+A full-stack application with a FastAPI backend and a React frontend. The backend connects to an external user-provided MySQL database. Core features are implemented and working in the local preview environment, including user/admin authentication, exam upload and AI analysis, AI chat, and Mercado Pago integration with a coupon system. An AI fallback mechanism (Claude -> ChatGPT -> Emergent LLM) is in place.
+
+The primary unresolved issue is the failure to deploy the frontend to Vercel due to a persistent build error.
 
 **Last working item**:
--   Last item agent was working: The agent renamed all MySQL database tables to include the prefix  and updated the  backend file to use these new table names.
--   Status: USER VERIFICATION PENDING
--   Agent Testing Done: Y
--   Which testing method agent to use? backend testing agent
+-   Last item agent was working: The agent was debugging a recurring build failure on Vercel. The latest attempt involved trying to fix an  dependency conflict that occurs with  on Node.js v20+ by downgrading  and  and using  in .
+-   Status: BLOCKED
+-   Agent Testing Done: Y (Local build works, Vercel deploy fails)
+-   Which testing method agent to use? Manual testing by user
 -   User Testing Done: N
 
 **All Pending/In progress Issue list**:
-There are no outstanding issues from the previous agent's work. The main task is to proceed with implementing the core features of the application.
+-   **Issue 1 (P0): Vercel Frontend Deployment Fails.** This is the highest priority and a complete blocker for production.
+
+  Issues Detail:
+  - Issue 1: Vercel Frontend Deployment Fails
+     - **Error Message**: 
+     - **Context**: The error occurs during the  step on Vercel's build environment (Node.js v20+). It seems to stem from a dependency of  ( ->  ->  or ) which has an incompatibility with newer Node.js versions.
+     - **Attempted fixes**:
+        1.  Pinning Node.js to . Failed because Vercel only offered  and higher.
+        2.  Removing  and using  directly, converting all path aliases () to relative paths.
+        3.  Adding  and  as direct dependencies with specific versions.
+        4.  Using  in  to force specific  versions (, then ).
+        5.  All attempts resulted in the same or a similar  related error on Vercel, even though the local build (yarn run v1.22.22
+info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.) succeeds.
+     - **Next debug checklist**:
+        - Investigate upgrading  to the latest version, which might have better compatibility with newer Node.js versions and updated dependencies.
+        - Alternatively, explore ejecting from Create React App to gain full control over the webpack configuration and its dependencies, allowing a direct fix for the  version conflict.
+        - Check the exact versions of  and  being installed by  to identify the root of the dependency chain causing the issue.
+     - **Why fix this issue and what will be achieved with the fix?**: The frontend cannot be deployed to production until this build error is resolved.
+     - **Status**: BLOCKED
+     - **Is recurring issue?**: Y
+     - **Should Test frontend/backend/both after fix?**: Frontend
+     - **Blocked on other issue**: None
 
 **In progress Task List**:
-There are no tasks currently in progress.
+-   None. The deployment issue is the sole focus.
 
 **Upcoming and Future Tasks**
-The application is currently a skeleton. The core functionality needs to be built.
-
-**Upcoming Tasks (P0):**
--   **Task 1 (P0): Implement Core Exam Analysis Flow**: This is the central feature of the app.
-    -   **Where to resume**: Create the file upload mechanism on the frontend ().
-    -   **Backend Logic**: Implement the endpoint in  to:
-        1.  Receive the uploaded file(s) (PDF/image).
-        2.  Use the Anthropic Claude Vision API to extract text and values.
-        3.  Parse and analyze the hemogram parameters.
-        4.  Generate the human-friendly summary and the color-coded table data.
-        5.  Store the results (, ) in the  table.
-        6.  Immediately delete the uploaded files.
-        7.  Deduct one credit from .
-    -   **Frontend Display**: In , display the AI summary, the results table, and the chat interface.
-
--   **Task 2 (P0): Implement Chat Interface**:
-    -   **Where to resume**: In , build the chat UI.
-    -   **Backend Logic**: Create WebSocket or REST endpoints in  for the chat.
-    -   **AI Integration**: The chat endpoint should call the Anthropic Claude API with the system prompt containing the exam context.
-    -   **Persistence**: Save the conversation history in the  table.
-
-**Future Tasks (P1):**
--   **Task 3 (P1): Implement Stripe Payment Flow**:
-    -   **Goal**: Allow users to purchase credit packages and subscribe.
-    -   **Actions**:
-        -   Integrate Stripe Checkout on the frontend for one-time payments and subscriptions.
-        -   Implement Stripe webhooks in  to handle  (add credits) and  events (update plan status).
-
--   **Task 4 (P1): Implement LGPD Compliance Logic**:
-    -   **Goal**: Fulfill all data protection requirements.
-    -   **Actions**:
-        -   Backend logic in  to store consent timestamps and versions in the  table.
-        -   Implement My Data features in  and corresponding backend endpoints for data export and account deletion (including cascading deletes and Stripe customer deletion).
-        -   Create a daily cron job for data retention policy (delete records older than ).
-
--   **Task 5 (P1): Build out Admin Dashboard Functionality**:
-    -   **Goal**: Provide admins with required management tools.
-    -   **Actions**:
-        -   Implement full CRUD for specialists in the admin dashboard.
-        -   Implement Stripe Coupon management (list, create, delete) by calling the Stripe API from the backend.
-
--   **Task 6 (P1): Implement Specialist Matching**:
-    -   **Goal**: Suggest doctors based on exam results.
-    -   **Actions**: In , after an exam is analyzed, implement the logic to check for abnormal values and map them to specialists from the  table. Display these on the .
+-   **Task 1 (P1): Refactor Backend**: Break down the monolithic  into a modular structure (e.g., routes, models, services) for better maintainability.
+-   **Task 2 (P1): Enhance Admin Dashboard**: Implement full CRUD for specialists.
+-   **Task 3 (P1): Implement Specialist Matching**: Implement the backend logic to suggest specialists based on exam results and display them on the frontend.
+-   **Task 4 (P2): Create a comprehensive README.md**: The agent started this but it should be completed to explain setup, environment variables, and how to run the project locally.
 
 **Completed work in this session**
--   **Recently completed:**
-    -   Project scaffolding for Frontend (React) and Backend (FastAPI). (DONE)
-    -   Initial database schema created in MySQL. (DONE)
-    -   User and Admin authentication flows implemented with JWT. (DONE)
-    -   Placeholder pages for all major application sections created. (DONE)
-    -   Addressed initial bugs found by the testing agent related to DB schema mismatches. (DONE)
-    -   **Database tables renamed with  prefix as per user request.** (DONE)
+- **Stripe to Mercado Pago Migration**: Replaced the entire payment flow from Stripe to Mercado Pago, including checkout and webhook logic. (DONE)
+- **Coupon System**: Implemented a full coupon system (create, list, validate) on the backend and integrated it into the frontend admin dashboard and user checkout flow. (DONE)
+- **AI Fallback Logic**: Implemented a fallback mechanism for AI calls: **Claude -> ChatGPT -> Emergent LLM**, using the appropriate API keys for each. (DONE)
+- **Core Exam Analysis and Chat**: Successfully implemented and tested the end-to-end flow of uploading an exam, getting AI analysis and flags, and chatting about the results. (DONE)
+- **API Route Standardization**: Cleaned up backend API routes, removing the  prefix from endpoints for consistency (e.g.,  to ). (DONE)
+- **Database Integrity Fixes**: Resolved foreign key constraint errors on deletion by ensuring records are deleted in the correct order. (DONE)
+- **Query Optimization**: Added  clauses to database queries to prevent potential timeouts in production, as flagged by the deployment agent. (DONE)
+- **GitHub Preparation**: Created  files and updated  to securely prepare the repository for a public push. (DONE)
 
 **Earlier issues found/mentioned but not fixed**
 -   None.
 
 **Known issue recurrence from previous fork**
--   None. This is the first fork.
+-   None.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Frontend**: React
+-   **Frontend**: React (with Create React App), Tailwind CSS, Shadcn UI
 -   **Backend**: FastAPI (Python)
--   **Database**: MySQL
--   **Authentication**: JWT-based (separate for users and admins)
--   **Deployment**: The application runs within a containerized environment managed by .
--   **Planned Integrations**: Anthropic Claude for AI, Stripe for Payments.
+-   **Database**: External MySQL
+-   **Authentication**: JWT-based
+-   **Payments**: Mercado Pago
+-   **AI**:  library to handle multiple providers (Anthropic, OpenAI, Gemini) with a fallback system.
 
 **key DB schema**
--   **exa_admins**: {id, email, password_hash, created_at}
--   **exa_tenants**: {id, name, stripe_customer_id, plan, exam_credits, active, created_at}
+-   **exa_tenants**: {id, name, slug, mp_customer_id, plan, exam_credits, active, created_at}
 -   **exa_users**: {id, tenant_id, email, password_hash, created_at, consent_granted}
 -   **exa_exams**: {id, user_id, tenant_id, extracted_data, ai_analysis, flags, created_at}
--   **exa_chat_messages**: {id, exam_id, user_id, role, content, created_at}
--   **exa_specialists**: {id, name, specialty, type, city, state, phone, website, email, description, active}
--   **exa_consents**: {id, user_id, timestamp, consent_version, action, type}
--   **exa_audit_log**: {id, event_type, affected_count, tenant_id, created_at}
--   ...and others as defined in the PRD.
+-   **exa_payment_transactions**: {id, tenant_id, user_id, package_id, mp_payment_id, ...}
+-   **exa_coupons**: {id, code, discount_percentage, max_uses, uses, expires_at, active}
 
 **changes in tech stack**
--   The original problem statement specified a **Next.js backend**, but the agent implemented a **FastAPI (Python) backend**. This is a major deviation the new agent must be aware of and continue with, as rewriting it would be a significant effort.
+-   **Stripe -> Mercado Pago**: Payment provider was migrated from Stripe to Mercado Pago.
 
 **All files of reference**
--   : The entire backend logic is in this single file. It defines all API endpoints, database connections, and business logic.
--   : The main React component that sets up all the client-side routing.
--   : This directory contains all the individual page components for the application.
--   : Manages authentication state for the React application.
--   : Contains the original product requirements and a summary of work done.
+-   : The monolithic backend application file containing all logic.
+-   : Contains all frontend dependencies and build scripts. The  section was added to debug the build issue.
+-   : Frontend page for exam upload and history.
+-   : Frontend for admin functionalities like coupon management.
+-   , , : Configuration files added to debug the Vercel deployment.
 
 **Areas that need refactoring**:
--   The  file is over 1200 lines long. It should be broken down into a more modular structure, separating routes, database models, and services into different files/directories for maintainability.
+-    is now over 1600 lines and urgently needs to be broken down into a modular structure (routes, services, models).
+-   The frontend dependency tree is fragile, as evidenced by the Vercel build issues. It would benefit from an audit and update of outdated packages.
 
 **key api endpoints**
 -   
 -   
 -   
 -   
--    (Health check)
+-   
+-   
+-   
+-   
+-   
 
 **Critical Info for New Agent**
--   **Backend Stack Deviation**: The project uses a **FastAPI** backend, not a Next.js backend as originally requested. You must continue with the existing FastAPI implementation.
--   **Database Prefix**: All database tables are prefixed with . Ensure all new queries use this prefix.
--   **Single-File Backend**: The entire backend is in . While refactoring is recommended for the future, for now, all backend changes will be made in this file.
--   **MVP Status**: The agent has declared the MVP complete, but this is inaccurate. Only the skeleton and authentication are in place. The core features (AI analysis, chat, payments) are not implemented. The next steps should focus on building these P0 features.
+-   **Vercel Deployment is BLOCKED**: The absolute priority is to solve the frontend build error on Vercel: . Local builds work, but the Vercel environment fails. You must solve this before proceeding with any other task.
+-   **External MySQL**: The application relies on an external MySQL database. The deployment agent will flag this, but it's the user's intended setup and can be ignored.
+-   **Monolithic Backend**: All backend logic is in . While functional, it's a high-priority candidate for refactoring once the deployment is stable.
 
 **documents and test reports created in this job**
--   /app/memory/PRD.md
--   /app/test_reports/iteration_1.json
--   /app/test_reports/iteration_2.json
+-   /app/memory/PRD.md (updated multiple times)
+-   /app/test_reports/iteration_3.json
+-   /app/test_reports/iteration_4.json
+-   /app/test_reports/iteration_5.json
+-   /app/backend/.env.example
+-   /app/frontend/.env.example
+-   /app/frontend/jsconfig.json
+-   /app/frontend/.npmrc
+-   /app/frontend/.nvmrc
+-   /app/vercel.json
 
 **Last 10 User Messages and any pending HUMAN messages**
--   The user requested to add the prefix  to all database tables for better data organization. The agent successfully renamed the tables, updated the backend code, and confirmed that the application was still functional. The task is complete from the agent's side.
+1. User provided a new Vercel build error log.
+2. Agent identified the error () was due to an  incompatibility.
+3. User confirmed they can use Node.js v20.x on Vercel.
+4. Agent configured the project for Node 20.x and tested the build locally.
+5. User provided a new Vercel build error log, showing the same error even with Node 20.x.
+6. Agent tried forcing  versions via  in .
+7. User provided a new Vercel build error log, showing a different error: .
+8. Agent downgraded  and  to older, compatible versions.
+9. User provided a new Vercel build error log, showing the original  error again.
+10. Agent's last action was to try a different combination of dependencies and re-test the local build.
 
 **Project Health Check:**
 -   **Broken**:
-    -   Exam Upload & Analysis Flow: Endpoints and UI exist, but the core AI logic is missing.
-    -   Stripe Payment Flow: Endpoints and UI exist, but the payment processing logic is missing.
+    -   Frontend Deployment on Vercel.
 -   **Mocked**:
-    -   User Dashboard, Admin Dashboard: Pages exist but are largely non-functional placeholders.
-    -   Chat Interface: The UI page exists but has no backend connection or AI logic.
+    -   None. Core features are implemented.
 
 **3rd Party Integrations**
--   **Anthropic Claude**: An API key has been provided by the user. Planned for exam analysis and chat. It **does not use** the Emergent LLM Key.
--   **Stripe**: A test API key has been provided by the user. Planned for payments.
--   **MySQL**: Credentials have been provided by the user for an external database.
+-   **Anthropic Claude**: User-provided API Key. Used in AI fallback.
+-   **OpenAI ChatGPT**: User-provided API Key. Used in AI fallback.
+-   **Gemini**: User-provided API Key. Used for exam data extraction.
+-   **Emergent LLM Key**: Used as the final AI provider in the fallback chain.
+-   **Mercado Pago**: API keys are in . Used for all payments.
+-   **MySQL**: Credentials for an external database are in .
 
 **Testing status**
--   Testing agent used after significant changes: YES
+-   Testing agent used after significant changes: YES (Last run: , all tests passed).
 -   Troubleshoot agent used after agent stuck in loop: NO
 -   Test files created: []
--   Known regressions: None
+-   Known regressions: None functionally, but the build process has regressed and is failing on Vercel.
 
 **Credentials to test flow:**
+-   **User with 10 credits**:
+    -   Email: 
+    -   Password: 
 -   **Admin**:
     -   Email: 
-    -   Password:  (This was hardcoded during the admin creation step in )
--   **User**: Register a new user through the  page. They will receive 1 free credit upon creation.
+    -   Password: 
 
 **What agent forgot to execute**
--   The agent deviated from the specified tech stack by using FastAPI for the backend instead of the requested Next.js API routes.
--   The agent prematurely declared the MVP complete after finishing the skeleton, while core features like AI analysis and payments are still unimplemented.</analysis>
+-   The agent did not manage to solve the Vercel deployment blocker, despite multiple attempts. The core issue of dependency conflicts with  on newer Node.js versions remains unresolved.</analysis>
