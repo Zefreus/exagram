@@ -1,24 +1,24 @@
 import React from "react";
 import "@/App.css";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import { Toaster } from "@/components/ui/sonner";
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { Toaster } from './components/ui/sonner';
 
 // Pages
-import LandingPage from "@/pages/LandingPage";
-import LoginPage from "@/pages/LoginPage";
-import RegisterPage from "@/pages/RegisterPage";
-import ConsentPage from "@/pages/ConsentPage";
-import DashboardPage from "@/pages/DashboardPage";
-import ExamResultPage from "@/pages/ExamResultPage";
-import SpecialistsPage from "@/pages/SpecialistsPage";
-import TermosPage from "@/pages/TermosPage";
-import PrivacidadePage from "@/pages/PrivacidadePage";
-import SettingsPage from "@/pages/SettingsPage";
+import LandingPage from './pages/LandingPage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import ConsentPage from './pages/ConsentPage';
+import DashboardPage from './pages/DashboardPage';
+import ExamResultPage from './pages/ExamResultPage';
+import SpecialistsPage from './pages/SpecialistsPage';
+import TermosPage from './pages/TermosPage';
+import PrivacidadePage from './pages/PrivacidadePage';
+import SettingsPage from './pages/SettingsPage';
 
 // Admin Pages
-import AdminLoginPage from "@/pages/admin/AdminLoginPage";
-import AdminDashboardPage from "@/pages/admin/AdminDashboardPage";
+import AdminLoginPage from './pages/admin/AdminLoginPage';
+import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 
 // Protected Route Component
 const ProtectedRoute = ({ children, requireConsent = true }) => {
