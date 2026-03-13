@@ -3,9 +3,10 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { 
     Heart, Upload, FileText, MessageCircle, CreditCard, 
-    Settings, LogOut, Plus, Clock, ArrowRight, Loader2, X, Check
+    Settings, LogOut, Plus, Clock, ArrowRight, Loader2, X, Check, Tag
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -20,6 +21,9 @@ export default function DashboardPage() {
     const [selectedFiles, setSelectedFiles] = useState([]);
     const [packages, setPackages] = useState([]);
     const [showPackages, setShowPackages] = useState(false);
+    const [couponCode, setCouponCode] = useState('');
+    const [couponDiscount, setCouponDiscount] = useState(null);
+    const [validatingCoupon, setValidatingCoupon] = useState(false);
 
     useEffect(() => {
         fetchExams();
