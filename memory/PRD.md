@@ -122,7 +122,11 @@ The API now returns which AI provider was used:
 
 ## Remaining Backlog
 
+### P0 (Deploy Ready)
+- [x] ~~Vercel build error~~ - **FIXED**: Migrated to Vite (March 13, 2026)
+
 ### P1 (High Priority)
+- [ ] Refactor server.py into modular structure
 - [ ] Credit expiration after 365 days
 - [ ] Email notifications (payment confirmation)
 - [ ] Automatic data retention cron job
