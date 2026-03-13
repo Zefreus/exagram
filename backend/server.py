@@ -1207,20 +1207,36 @@ async def export_user_data(user = Depends(get_current_user)):
 @api_router.delete("/user/account")
 async def delete_user_account(user = Depends(get_current_user)):
     """Delete user account and all data (LGPD deletion right)"""
+    user_id = user['user_id']
+    tenant_id = user['tenant_id']
+    
     # Log deletion
     exam_count = await execute_query(
         "SELECT COUNT(*) as count FROM exa_exams WHERE user_id = %s",
-        (user['user_id'],),
+        (user_id,),
         fetchone=True
     )
     
     await execute_query(
         "INSERT INTO exa_audit_log (id, event_type, affected_count, tenant_id) VALUES (%s, 'user_deletion', %s, %s)",
-        (str(uuid.uuid4()), exam_count['count'], user['tenant_id'])
+        (str(uuid.uuid4()), exam_count['count'], tenant_id)
     )
     
-    # Delete tenant (cascades to user and all data)
-    await execute_query("DELETE FROM exa_tenants WHERE id = %s", (user['tenant_id'],))
+    # Delete in order to respect foreign key constraints
+    # 1. Delete chat messages (references exam_id)
+    await execute_query("DELETE FROM exa_chat_messages WHERE user_id = %s", (user_id,))
+    # 2. Delete exams (references user_id and tenant_id)
+    await execute_query("DELETE FROM exa_exams WHERE user_id = %s", (user_id,))
+    # 3. Delete consents (references user_id)
+    await execute_query("DELETE FROM exa_consents WHERE user_id = %s", (user_id,))
+    # 4. Delete users (references tenant_id)
+    await execute_query("DELETE FROM exa_users WHERE id = %s", (user_id,))
+    # 5. Delete usage tracking
+    await execute_query("DELETE FROM exa_usage_tracking WHERE tenant_id = %s", (tenant_id,))
+    # 6. Delete payment transactions
+    await execute_query("DELETE FROM exa_payment_transactions WHERE tenant_id = %s", (tenant_id,))
+    # 7. Finally delete tenant
+    await execute_query("DELETE FROM exa_tenants WHERE id = %s", (tenant_id,))
     
     return {"success": True, "message": "Conta e todos os dados foram excluídos permanentemente"}
 
