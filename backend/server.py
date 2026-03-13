@@ -100,7 +100,7 @@ async def init_database():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (tenant_id) REFERENCES exa_tenants(id) ON DELETE CASCADE
         )""",
-        """CREATE TABLE IF NOT EXISTS exams (
+        """CREATE TABLE IF NOT EXISTS exa_exams (
             id VARCHAR(36) PRIMARY KEY,
             user_id VARCHAR(36) NOT NULL,
             tenant_id VARCHAR(36) NOT NULL,
@@ -489,7 +489,7 @@ async def get_consent_config():
 
 # ============== EXAM ROUTES ==============
 
-@api_router.post("/exams/upload")
+@api_router.post("/exa_exams/upload")
 async def upload_exam(
     files: List[UploadFile] = File(...),
     confirm_same_exam: bool = Form(True),
@@ -637,7 +637,7 @@ Retorne JSON:
         # Save exam
         exam_id = str(uuid.uuid4())
         await execute_query(
-            """INSERT INTO exams (id, user_id, tenant_id, extracted_data, ai_analysis, flags, summary)
+            """INSERT INTO exa_exams (id, user_id, tenant_id, extracted_data, ai_analysis, flags, summary)
                VALUES (%s, %s, %s, %s, %s, %s, %s)""",
             (exam_id, user['user_id'], user['tenant_id'],
              json.dumps(extracted_data),
@@ -666,10 +666,10 @@ Retorne JSON:
         logging.error(f"Error processing exam: {e}")
         raise HTTPException(status_code=500, detail=f"Erro ao processar exame: {str(e)}")
 
-@api_router.get("/exams")
-async def get_exams(user = Depends(get_current_user)):
-    exams = await execute_query(
-        """SELECT id, summary, created_at FROM exams 
+@api_router.get("/exa_exams")
+async def get_exa_exams(user = Depends(get_current_user)):
+    exa_exams = await execute_query(
+        """SELECT id, summary, created_at FROM exa_exams 
            WHERE user_id = %s 
            ORDER BY created_at DESC""",
         (user['user_id'],),
@@ -679,12 +679,12 @@ async def get_exams(user = Depends(get_current_user)):
         "id": e['id'],
         "summary": e['summary'][:150] + '...' if e['summary'] and len(e['summary']) > 150 else e['summary'],
         "created_at": e['created_at'].isoformat() if e['created_at'] else None
-    } for e in exams]
+    } for e in exa_exams]
 
-@api_router.get("/exams/{exam_id}")
+@api_router.get("/exa_exams/{exam_id}")
 async def get_exam(exam_id: str, user = Depends(get_current_user)):
     exam = await execute_query(
-        """SELECT * FROM exams WHERE id = %s AND user_id = %s""",
+        """SELECT * FROM exa_exams WHERE id = %s AND user_id = %s""",
         (exam_id, user['user_id']),
         fetchone=True
     )
@@ -731,11 +731,11 @@ async def get_exam(exam_id: str, user = Depends(get_current_user)):
         "specialists": [dict(s) for s in specialists]
     }
 
-@api_router.post("/exams/{exam_id}/chat")
+@api_router.post("/exa_exams/{exam_id}/chat")
 async def chat_with_exam(exam_id: str, message: ChatMessage, user = Depends(get_current_user)):
     # Get exam
     exam = await execute_query(
-        "SELECT * FROM exams WHERE id = %s AND user_id = %s",
+        "SELECT * FROM exa_exams WHERE id = %s AND user_id = %s",
         (exam_id, user['user_id']),
         fetchone=True
     )
@@ -851,7 +851,7 @@ async def admin_overview(admin = Depends(get_current_admin)):
     active_subs = await execute_query("SELECT COUNT(*) as count FROM exa_tenants WHERE plan = 'pro'", fetchone=True)
     
     month_year = datetime.now(timezone.utc).strftime('%Y-%m')
-    exams_this_month = await execute_query(
+    exa_exams_this_month = await execute_query(
         "SELECT COALESCE(SUM(exam_count), 0) as count FROM usage_tracking WHERE month_year = %s",
         (month_year,),
         fetchone=True
@@ -860,14 +860,14 @@ async def admin_overview(admin = Depends(get_current_admin)):
     return {
         "total_exa_tenants": total_exa_tenants['count'],
         "active_subscriptions": active_subs['count'],
-        "exams_this_month": exams_this_month['count']
+        "exa_exams_this_month": exa_exams_this_month['count']
     }
 
 @api_router.get("/admin/exa_tenants")
 async def admin_get_exa_tenants(admin = Depends(get_current_admin)):
     exa_tenants = await execute_query(
         """SELECT t.*, u.email as user_email, 
-           (SELECT COUNT(*) FROM exams WHERE tenant_id = t.id) as exam_count
+           (SELECT COUNT(*) FROM exa_exams WHERE tenant_id = t.id) as exam_count
            FROM exa_tenants t
            LEFT JOIN exa_users u ON t.id = u.tenant_id
            ORDER BY t.created_at DESC""",
@@ -915,7 +915,7 @@ async def admin_update_tenant(tenant_id: str, active: bool, admin = Depends(get_
 async def admin_delete_tenant(tenant_id: str, admin = Depends(get_current_admin)):
     # Log deletion
     exam_count = await execute_query(
-        "SELECT COUNT(*) as count FROM exams WHERE tenant_id = %s",
+        "SELECT COUNT(*) as count FROM exa_exams WHERE tenant_id = %s",
         (tenant_id,),
         fetchone=True
     )
@@ -925,7 +925,7 @@ async def admin_delete_tenant(tenant_id: str, admin = Depends(get_current_admin)
         (str(uuid.uuid4()), exam_count['count'], tenant_id)
     )
     
-    # Delete tenant (cascades to exa_users, exams, etc.)
+    # Delete tenant (cascades to exa_users, exa_exams, etc.)
     await execute_query("DELETE FROM exa_tenants WHERE id = %s", (tenant_id,))
     return {"success": True}
 
@@ -1138,8 +1138,8 @@ async def export_user_data(user = Depends(get_current_user)):
         fetchone=True
     )
     
-    exams = await execute_query(
-        "SELECT id, extracted_data, ai_analysis, summary, created_at FROM exams WHERE user_id = %s",
+    exa_exams = await execute_query(
+        "SELECT id, extracted_data, ai_analysis, summary, created_at FROM exa_exams WHERE user_id = %s",
         (user['user_id'],),
         fetch=True
     )
@@ -1162,13 +1162,13 @@ async def export_user_data(user = Depends(get_current_user)):
             "plan": tenant_data['plan'],
             "credits": tenant_data['exam_credits']
         },
-        "exams": [{
+        "exa_exams": [{
             "id": e['id'],
             "data": json.loads(e['extracted_data']) if e['extracted_data'] else None,
             "analysis": json.loads(e['ai_analysis']) if e['ai_analysis'] else None,
             "summary": e['summary'],
             "created_at": e['created_at'].isoformat() if e['created_at'] else None
-        } for e in exams],
+        } for e in exa_exams],
         "consents": [{
             "type": c['type'],
             "action": c['action'],
@@ -1183,7 +1183,7 @@ async def delete_user_account(user = Depends(get_current_user)):
     """Delete user account and all data (LGPD deletion right)"""
     # Log deletion
     exam_count = await execute_query(
-        "SELECT COUNT(*) as count FROM exams WHERE user_id = %s",
+        "SELECT COUNT(*) as count FROM exa_exams WHERE user_id = %s",
         (user['user_id'],),
         fetchone=True
     )
