@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { 
     Shield, LayoutDashboard, Users, UserPlus, FileText, 
-    LogOut, Plus, Trash2, Edit, X, Loader2, Check, Eye, EyeOff
+    LogOut, Plus, Trash2, Edit, X, Loader2, Check, Eye, EyeOff, Tag
 } from 'lucide-react';
 import { toast } from 'sonner';
 
