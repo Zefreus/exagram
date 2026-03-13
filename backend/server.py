@@ -632,11 +632,10 @@ async def upload_exam(
     if not tenant or tenant['exam_credits'] < 1:
         raise HTTPException(status_code=402, detail="Créditos insuficientes. Por favor, adquira mais análises.")
     
-    # Process files with Claude Vision
+    # Process files with AI
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType
+        from emergentintegrations.llm.chat import FileContentWithMimeType
         import tempfile
-        import aiofiles
         
         # Save files temporarily
         temp_files = []
@@ -651,11 +650,14 @@ async def upload_exam(
                     'name': file.filename
                 })
         
-        # Use Gemini for file analysis (supports file attachments)
-        chat = LlmChat(
-            api_key=EMERGENT_LLM_KEY,
-            session_id=f"exam_{str(uuid.uuid4())}",
-            system_message="""Você é um especialista em análise de hemogramas. 
+        # Create file contents for extraction
+        file_contents = [
+            FileContentWithMimeType(file_path=f['path'], mime_type=f['mime'])
+            for f in temp_files
+        ]
+        
+        # Step 1: Extract data with Gemini (vision model)
+        extraction_system = """Você é um especialista em análise de hemogramas. 
 Extraia TODOS os valores do exame de sangue da imagem/PDF fornecido.
 Retorne um JSON com a estrutura:
 {
@@ -678,19 +680,12 @@ Retorne um JSON com a estrutura:
     "data_exame": string
 }
 Retorne APENAS o JSON, sem markdown ou explicações."""
-        ).with_model("gemini", "gemini-2.5-flash")
         
-        # Create file contents
-        file_contents = [
-            FileContentWithMimeType(file_path=f['path'], mime_type=f['mime'])
-            for f in temp_files
-        ]
-        
-        # Extract data
-        extraction_response = await chat.send_message(UserMessage(
-            text="Extraia todos os valores deste hemograma. Retorne apenas JSON.",
+        extraction_response, extraction_provider = await call_gemini_extraction(
+            system_message=extraction_system,
+            user_message="Extraia todos os valores deste hemograma. Retorne apenas JSON.",
             file_contents=file_contents
-        ))
+        )
         
         # Clean up temp files
         for f in temp_files:
@@ -701,7 +696,6 @@ Retorne APENAS o JSON, sem markdown ou explicações."""
         
         # Parse extracted data
         try:
-            # Clean response - remove markdown code blocks if present
             clean_response = extraction_response.strip()
             if clean_response.startswith('```'):
                 clean_response = clean_response.split('\n', 1)[1]
@@ -711,11 +705,8 @@ Retorne APENAS o JSON, sem markdown ou explicações."""
         except json.JSONDecodeError:
             extracted_data = {"raw_text": extraction_response, "valores": {}}
         
-        # Analyze with Claude for summary and flags
-        analysis_chat = LlmChat(
-            api_key=EMERGENT_LLM_KEY,
-            session_id=f"analysis_{str(uuid.uuid4())}",
-            system_message="""Você é um assistente de saúde empático e acolhedor. Analise os valores do hemograma e forneça:
+        # Step 2: Analyze with AI (Claude -> ChatGPT -> Emergent fallback)
+        analysis_system = """Você é um assistente de saúde empático e acolhedor. Analise os valores do hemograma e forneça:
 1. Um resumo caloroso e tranquilizador em português brasileiro (como um amigo bem-informado falaria)
 2. Flags para cada valor: "normal", "borderline" ou "attention"
 3. Lista de especialistas sugeridos baseado em valores alterados
@@ -726,11 +717,14 @@ Retorne JSON:
     "flags": {"hemoglobina": "normal", ...},
     "suggested_exa_specialists": ["Hematologista", ...]
 }"""
-        ).with_model("anthropic", "claude-4-sonnet-20250514")
         
-        analysis_response = await analysis_chat.send_message(UserMessage(
-            text=f"Analise este hemograma: {json.dumps(extracted_data)}"
-        ))
+        analysis_response, analysis_provider = await call_ai_with_fallback(
+            system_message=analysis_system,
+            user_message=f"Analise este hemograma: {json.dumps(extracted_data)}",
+            session_id=f"analysis_{str(uuid.uuid4())}"
+        )
+        
+        logging.info(f"Exam processed - Extraction: {extraction_provider}, Analysis: {analysis_provider}")
         
         # Parse analysis
         try:
@@ -762,14 +756,14 @@ Retorne JSON:
             (str(uuid.uuid4()), user['tenant_id'], month_year)
         )
         
-        # Save exam
+        # Save exam with provider info
         exam_id = str(uuid.uuid4())
         await execute_query(
             """INSERT INTO exa_exams (id, user_id, tenant_id, extracted_data, ai_analysis, flags, summary)
                VALUES (%s, %s, %s, %s, %s, %s, %s)""",
             (exam_id, user['user_id'], user['tenant_id'],
              json.dumps(extracted_data),
-             json.dumps(analysis_data),
+             json.dumps({**analysis_data, "_providers": {"extraction": extraction_provider, "analysis": analysis_provider}}),
              json.dumps(analysis_data.get('flags', {})),
              analysis_data.get('summary', ''))
         )
@@ -787,7 +781,8 @@ Retorne JSON:
             "exam_id": exam_id,
             "extracted_data": extracted_data,
             "analysis": analysis_data,
-            "credits_remaining": tenant['exam_credits'] - 1
+            "credits_remaining": tenant['exam_credits'] - 1,
+            "_ai_providers": {"extraction": extraction_provider, "analysis": analysis_provider}
         }
         
     except Exception as e:
