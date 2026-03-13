@@ -865,6 +865,7 @@ export default function AdminDashboardPage() {
         { id: 'overview', label: 'Visão Geral', icon: LayoutDashboard },
         { id: 'tenants', label: 'Tenants', icon: Users },
         { id: 'specialists', label: 'Especialistas', icon: UserPlus },
+        { id: 'coupons', label: 'Cupons', icon: Tag },
         { id: 'audit', label: 'Auditoria', icon: FileText }
     ];
 
