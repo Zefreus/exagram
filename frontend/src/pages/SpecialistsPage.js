@@ -54,7 +54,7 @@ export default function SpecialistsPage() {
                 params.append('specialty', filters.specialty);
             }
             if (filters.city) params.append('city', filters.city);
-            if (filters.state) params.append('state', filters.state);
+            if (filters.state && filters.state !== 'all') params.append('state', filters.state);
             
             const response = await axios.get(`${API_URL}/specialists?${params.toString()}`);
             setSpecialists(response.data);
