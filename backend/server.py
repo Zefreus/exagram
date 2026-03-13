@@ -1017,7 +1017,7 @@ async def admin_get_audit_log(admin = Depends(get_current_admin)):
     )
     return [dict(l) for l in logs]
 
-# ============== STRIPE ROUTES ==============
+# ============== MERCADO PAGO ROUTES ==============
 
 CREDIT_PACKAGES = {
     "single": {"credits": 1, "amount": 9.90, "name": "1 análise"},
@@ -1031,123 +1031,251 @@ async def create_checkout(data: CheckoutRequest, user = Depends(get_current_user
         raise HTTPException(status_code=400, detail="Pacote inválido")
     
     package = CREDIT_PACKAGES[data.package_id]
+    final_price = float(package['amount'])
+    coupon_applied = None
+    
+    # Apply coupon if provided
+    if data.coupon_code:
+        coupon = await execute_query(
+            """SELECT * FROM exa_coupons 
+               WHERE code = %s AND active = TRUE
+               AND (expires_at IS NULL OR expires_at > NOW())
+               AND (max_redemptions IS NULL OR times_redeemed < max_redemptions)""",
+            (data.coupon_code,),
+            fetchone=True
+        )
+        if coupon:
+            if coupon['discount_type'] == 'percent':
+                final_price = final_price * (1 - float(coupon['discount_value']) / 100)
+            else:
+                final_price = final_price - float(coupon['discount_value'])
+            final_price = max(final_price, 0)
+            coupon_applied = data.coupon_code
     
     try:
-        from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionRequest
+        import mercadopago
         
-        success_url = f"{data.origin_url}/dashboard?payment=success&session_id={{CHECKOUT_SESSION_ID}}"
-        cancel_url = f"{data.origin_url}/dashboard?payment=cancelled"
+        sdk = mercadopago.SDK(MP_ACCESS_TOKEN)
         
-        stripe_checkout = StripeCheckout(
-            api_key=STRIPE_SECRET_KEY,
-            webhook_url=f"{data.origin_url}/api/webhook/stripe"
+        # Get user email
+        user_data = await execute_query(
+            "SELECT email FROM exa_users WHERE id = %s",
+            (user['user_id'],),
+            fetchone=True
         )
         
-        request = CheckoutSessionRequest(
-            amount=float(package['amount']),
-            currency="brl",
-            success_url=success_url,
-            cancel_url=cancel_url,
-            metadata={
+        preference_data = {
+            "items": [{
+                "title": f"{package['name']} — Exagram",
+                "quantity": 1,
+                "unit_price": round(final_price, 2),
+                "currency_id": "BRL"
+            }],
+            "payer": {
+                "email": user_data['email'] if user_data else user['email']
+            },
+            "payment_methods": {
+                "installments": 3
+            },
+            "back_urls": {
+                "success": f"{data.origin_url}/dashboard?payment=success",
+                "failure": f"{data.origin_url}/dashboard?payment=failure",
+                "pending": f"{data.origin_url}/dashboard?payment=pending"
+            },
+            "auto_return": "approved",
+            "external_reference": json.dumps({
                 "tenant_id": user['tenant_id'],
-                "user_id": user['user_id'],
-                "package_id": data.package_id,
-                "credits": str(package['credits'])
-            }
-        )
+                "credits": package['credits'],
+                "coupon_code": coupon_applied,
+                "package_id": data.package_id
+            }),
+            "notification_url": f"{data.origin_url}/api/webhooks/mercadopago"
+        }
         
-        session = await stripe_checkout.create_checkout_session(request)
+        preference_response = sdk.preference().create(preference_data)
+        preference = preference_response.get("response", {})
+        
+        if not preference.get("id"):
+            logging.error(f"MP Preference error: {preference_response}")
+            raise HTTPException(status_code=500, detail="Erro ao criar preferência de pagamento")
         
         # Create payment record
         await execute_query(
             """INSERT INTO exa_payment_transactions (id, tenant_id, session_id, amount, currency, credits, payment_status, metadata)
                VALUES (%s, %s, %s, %s, 'brl', %s, 'pending', %s)""",
-            (str(uuid.uuid4()), user['tenant_id'], session.session_id, 
-             package['amount'], package['credits'], json.dumps({"package_id": data.package_id}))
+            (str(uuid.uuid4()), user['tenant_id'], preference['id'], 
+             final_price, package['credits'], json.dumps({
+                 "package_id": data.package_id,
+                 "coupon_code": coupon_applied
+             }))
         )
         
-        return {"url": session.url, "session_id": session.session_id}
+        return {
+            "url": preference.get("init_point"),
+            "session_id": preference.get("id"),
+            "original_price": package['amount'],
+            "final_price": final_price,
+            "coupon_applied": coupon_applied
+        }
         
+    except HTTPException:
+        raise
     except Exception as e:
-        logging.error(f"Stripe checkout error: {e}")
+        logging.error(f"Mercado Pago checkout error: {e}")
         raise HTTPException(status_code=500, detail="Erro ao criar sessão de pagamento")
 
-@api_router.get("/payments/status/{session_id}")
-async def get_payment_status(session_id: str, user = Depends(get_current_user)):
+@api_router.post("/payments/validate-coupon")
+async def validate_coupon(data: CouponValidate, user = Depends(get_current_user)):
+    coupon = await execute_query(
+        """SELECT code, discount_type, discount_value FROM exa_coupons 
+           WHERE code = %s AND active = TRUE
+           AND (expires_at IS NULL OR expires_at > NOW())
+           AND (max_redemptions IS NULL OR times_redeemed < max_redemptions)""",
+        (data.code,),
+        fetchone=True
+    )
+    if not coupon:
+        return {"valid": False, "message": "Cupom inválido ou expirado"}
+    
+    return {
+        "valid": True,
+        "discount_type": coupon['discount_type'],
+        "discount_value": float(coupon['discount_value'])
+    }
+
+@api_router.get("/payments/status/{preference_id}")
+async def get_payment_status(preference_id: str, user = Depends(get_current_user)):
+    """Check payment status by preference ID"""
     try:
-        from emergentintegrations.payments.stripe.checkout import StripeCheckout
+        import mercadopago
         
-        stripe_checkout = StripeCheckout(api_key=STRIPE_SECRET_KEY, webhook_url="")
-        status = await stripe_checkout.get_checkout_status(session_id)
+        sdk = mercadopago.SDK(MP_ACCESS_TOKEN)
         
-        if status.payment_status == 'paid':
-            # Check if already processed
-            transaction = await execute_query(
-                "SELECT payment_status, credits FROM exa_payment_transactions WHERE session_id = %s AND tenant_id = %s",
-                (session_id, user['tenant_id']),
-                fetchone=True
-            )
-            
-            if transaction and transaction['payment_status'] != 'completed':
-                # Add credits
-                await execute_query(
-                    "UPDATE exa_tenants SET exam_credits = exam_credits + %s WHERE id = %s",
-                    (transaction['credits'], user['tenant_id'])
-                )
+        # Search for payments with this preference
+        search_result = sdk.payment().search({
+            "external_reference": preference_id
+        })
+        
+        payments = search_result.get("response", {}).get("results", [])
+        
+        # Check transaction in our database
+        transaction = await execute_query(
+            "SELECT payment_status, credits FROM exa_payment_transactions WHERE session_id = %s AND tenant_id = %s",
+            (preference_id, user['tenant_id']),
+            fetchone=True
+        )
+        
+        # Find approved payment
+        for payment in payments:
+            if payment.get("status") == "approved":
+                if transaction and transaction['payment_status'] != 'completed':
+                    # Add credits
+                    await execute_query(
+                        "UPDATE exa_tenants SET exam_credits = exam_credits + %s WHERE id = %s",
+                        (transaction['credits'], user['tenant_id'])
+                    )
+                    # Update transaction status
+                    await execute_query(
+                        "UPDATE exa_payment_transactions SET payment_status = 'completed' WHERE session_id = %s",
+                        (preference_id,)
+                    )
+                    # Increment coupon usage if applied
+                    metadata = transaction.get('metadata')
+                    if metadata:
+                        try:
+                            meta_dict = json.loads(metadata) if isinstance(metadata, str) else metadata
+                            if meta_dict.get('coupon_code'):
+                                await execute_query(
+                                    "UPDATE exa_coupons SET times_redeemed = times_redeemed + 1 WHERE code = %s",
+                                    (meta_dict['coupon_code'],)
+                                )
+                        except:
+                            pass
                 
-                # Update transaction status
-                await execute_query(
-                    "UPDATE exa_payment_transactions SET payment_status = 'completed' WHERE session_id = %s",
-                    (session_id,)
-                )
+                return {
+                    "status": "complete",
+                    "payment_status": "paid",
+                    "amount": payment.get("transaction_amount", 0),
+                    "currency": "BRL"
+                }
         
+        # No approved payment found
         return {
-            "status": status.status,
-            "payment_status": status.payment_status,
-            "amount": status.amount_total / 100,
-            "currency": status.currency
+            "status": "pending",
+            "payment_status": "pending",
+            "amount": 0,
+            "currency": "BRL"
         }
         
     except Exception as e:
         logging.error(f"Payment status error: {e}")
         raise HTTPException(status_code=500, detail="Erro ao verificar pagamento")
 
-@api_router.post("/webhook/stripe")
-async def stripe_webhook(request: Request):
+@api_router.post("/webhooks/mercadopago")
+async def mercadopago_webhook(request: Request):
+    """Handle Mercado Pago webhook notifications"""
     try:
-        from emergentintegrations.payments.stripe.checkout import StripeCheckout
+        body = await request.json()
         
-        body = await request.body()
-        signature = request.headers.get("Stripe-Signature", "")
+        # Get webhook headers for validation
+        x_signature = request.headers.get("x-signature", "")
+        x_request_id = request.headers.get("x-request-id", "")
         
-        stripe_checkout = StripeCheckout(api_key=STRIPE_SECRET_KEY, webhook_url="")
-        webhook_response = await stripe_checkout.handle_webhook(body, signature)
+        # TODO: Implement HMAC validation with MP_WEBHOOK_SECRET
         
-        if webhook_response.event_type == "checkout.session.completed":
-            session_id = webhook_response.session_id
-            metadata = webhook_response.metadata
+        event_type = body.get("type")
+        data = body.get("data", {})
+        
+        if event_type == "payment":
+            import mercadopago
+            sdk = mercadopago.SDK(MP_ACCESS_TOKEN)
             
-            if metadata and 'tenant_id' in metadata and 'credits' in metadata:
-                # Check if already processed
-                transaction = await execute_query(
-                    "SELECT payment_status FROM exa_payment_transactions WHERE session_id = %s",
-                    (session_id,),
-                    fetchone=True
-                )
+            payment_id = data.get("id")
+            if payment_id:
+                payment_response = sdk.payment().get(payment_id)
+                payment = payment_response.get("response", {})
                 
-                if transaction and transaction['payment_status'] != 'completed':
-                    credits = int(metadata['credits'])
-                    tenant_id = metadata['tenant_id']
+                if payment.get("status") == "approved":
+                    external_reference = payment.get("external_reference")
                     
-                    await execute_query(
-                        "UPDATE exa_tenants SET exam_credits = exam_credits + %s WHERE id = %s",
-                        (credits, tenant_id)
-                    )
-                    
-                    await execute_query(
-                        "UPDATE exa_payment_transactions SET payment_status = 'completed' WHERE session_id = %s",
-                        (session_id,)
-                    )
+                    if external_reference:
+                        try:
+                            ref_data = json.loads(external_reference)
+                            tenant_id = ref_data.get("tenant_id")
+                            credits = ref_data.get("credits")
+                            coupon_code = ref_data.get("coupon_code")
+                            
+                            if tenant_id and credits:
+                                # Check if already processed
+                                transaction = await execute_query(
+                                    "SELECT payment_status FROM exa_payment_transactions WHERE tenant_id = %s ORDER BY created_at DESC LIMIT 1",
+                                    (tenant_id,),
+                                    fetchone=True
+                                )
+                                
+                                if transaction and transaction['payment_status'] != 'completed':
+                                    # Add credits
+                                    await execute_query(
+                                        "UPDATE exa_tenants SET exam_credits = exam_credits + %s WHERE id = %s",
+                                        (credits, tenant_id)
+                                    )
+                                    
+                                    # Update transaction
+                                    await execute_query(
+                                        "UPDATE exa_payment_transactions SET payment_status = 'completed' WHERE tenant_id = %s AND payment_status = 'pending' ORDER BY created_at DESC LIMIT 1",
+                                        (tenant_id,)
+                                    )
+                                    
+                                    # Increment coupon usage
+                                    if coupon_code:
+                                        await execute_query(
+                                            "UPDATE exa_coupons SET times_redeemed = times_redeemed + 1 WHERE code = %s",
+                                            (coupon_code,)
+                                        )
+                                    
+                                    logging.info(f"Payment processed: {credits} credits added to tenant {tenant_id}")
+                        except json.JSONDecodeError:
+                            logging.error(f"Invalid external_reference: {external_reference}")
         
         return {"received": True}
         
@@ -1160,13 +1288,69 @@ async def get_packages():
     return {
         "packages": [
             {"id": k, **v} for k, v in CREDIT_PACKAGES.items()
-        ],
-        "subscription": {
-            "price": 19.90,
-            "credits_per_month": 3,
-            "name": "Plano Pro"
-        }
+        ]
     }
+
+# ============== ADMIN COUPON ROUTES ==============
+
+@api_router.get("/admin/coupons")
+async def admin_get_coupons(admin = Depends(get_current_admin)):
+    coupons = await execute_query(
+        "SELECT * FROM exa_coupons ORDER BY created_at DESC",
+        fetch=True
+    )
+    return [{
+        "id": c['id'],
+        "code": c['code'],
+        "discount_type": c['discount_type'],
+        "discount_value": float(c['discount_value']),
+        "max_redemptions": c['max_redemptions'],
+        "times_redeemed": c['times_redeemed'],
+        "expires_at": c['expires_at'].isoformat() if c['expires_at'] else None,
+        "active": bool(c['active']),
+        "created_at": c['created_at'].isoformat() if c['created_at'] else None
+    } for c in coupons]
+
+@api_router.post("/admin/coupons")
+async def admin_create_coupon(data: CouponCreate, admin = Depends(get_current_admin)):
+    # Check if code already exists
+    existing = await execute_query(
+        "SELECT id FROM exa_coupons WHERE code = %s",
+        (data.code.upper(),),
+        fetchone=True
+    )
+    if existing:
+        raise HTTPException(status_code=400, detail="Código de cupom já existe")
+    
+    coupon_id = str(uuid.uuid4())
+    expires_at = None
+    if data.expires_at:
+        try:
+            expires_at = datetime.fromisoformat(data.expires_at.replace('Z', '+00:00'))
+        except:
+            pass
+    
+    await execute_query(
+        """INSERT INTO exa_coupons (id, code, discount_type, discount_value, max_redemptions, expires_at)
+           VALUES (%s, %s, %s, %s, %s, %s)""",
+        (coupon_id, data.code.upper(), data.discount_type, data.discount_value, 
+         data.max_redemptions, expires_at)
+    )
+    
+    return {"id": coupon_id, "code": data.code.upper()}
+
+@api_router.patch("/admin/coupons/{coupon_id}")
+async def admin_update_coupon(coupon_id: str, active: bool, admin = Depends(get_current_admin)):
+    await execute_query(
+        "UPDATE exa_coupons SET active = %s WHERE id = %s",
+        (active, coupon_id)
+    )
+    return {"success": True}
+
+@api_router.delete("/admin/coupons/{coupon_id}")
+async def admin_delete_coupon(coupon_id: str, admin = Depends(get_current_admin)):
+    await execute_query("DELETE FROM exa_coupons WHERE id = %s", (coupon_id,))
+    return {"success": True}
 
 # ============== LGPD DATA RIGHTS ==============
 
