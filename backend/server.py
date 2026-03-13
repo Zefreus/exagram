@@ -76,7 +76,7 @@ async def execute_query(query: str, params: tuple = None, fetch: bool = False, f
 # Initialize database tables
 async def init_database():
     queries = [
-        """CREATE TABLE IF NOT EXISTS admins (
+        """CREATE TABLE IF NOT EXISTS exa_admins (
             id VARCHAR(36) PRIMARY KEY,
             email VARCHAR(255) UNIQUE NOT NULL,
             password_hash VARCHAR(255) NOT NULL,
@@ -182,14 +182,14 @@ async def init_database():
     
     # Create default admin if not exists
     admin_exists = await execute_query(
-        "SELECT id FROM admins WHERE email = %s",
+        "SELECT id FROM exa_admins WHERE email = %s",
         (ADMIN_EMAIL,),
         fetchone=True
     )
     if not admin_exists:
         password_hash = bcrypt.hashpw(ADMIN_PASSWORD.encode(), bcrypt.gensalt()).decode()
         await execute_query(
-            "INSERT INTO admins (id, email, password_hash) VALUES (%s, %s, %s)",
+            "INSERT INTO exa_admins (id, email, password_hash) VALUES (%s, %s, %s)",
             (str(uuid.uuid4()), ADMIN_EMAIL, password_hash)
         )
         logging.info(f"Default admin created: {ADMIN_EMAIL}")
@@ -374,7 +374,7 @@ async def login_user(data: UserLogin):
 @api_router.post("/admin/login")
 async def login_admin(data: AdminLogin):
     admin = await execute_query(
-        "SELECT * FROM admins WHERE email = %s",
+        "SELECT * FROM exa_admins WHERE email = %s",
         (data.email,),
         fetchone=True
     )
