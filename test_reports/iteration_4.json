@@ -1,0 +1,111 @@
+{
+  "summary": "Completed comprehensive testing of Exagram Mercado Pago payment migration and coupon system. Backend: 22/22 tests passed (100%). Frontend: All tested features working correctly. Fixed one bug in /api/auth/me endpoint.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [],
+    "fixed_during_testing": [
+      {
+        "endpoint": "/api/auth/me",
+        "issue": "Query referenced non-existent column 't.stripe_customer_id' causing 500 error",
+        "fix": "Removed stripe_customer_id reference from SQL query and response",
+        "file": "/app/backend/server.py",
+        "line": "419-441"
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "working_features": [
+      "Landing page loads correctly",
+      "User registration with confirm password field",
+      "LGPD consent flow (2 steps: terms/privacy + sensitive data)",
+      "Dashboard loads with 1 free credit for new users",
+      "Buy credits modal with coupon input field",
+      "Coupon validation (TESTE10 - 10% discount)",
+      "Discounted prices displayed with original price crossed out",
+      "Mercado Pago payment integration (checkout URL generated)",
+      "Admin login with provided credentials",
+      "Admin dashboard - Overview tab with statistics",
+      "Admin dashboard - Cupons tab with coupon list",
+      "Admin coupon CRUD (create, toggle active, delete)"
+    ]
+  },
+  "passed_tests": [
+    "GET /api/packages - Returns 3 credit packages with correct prices",
+    "POST /api/auth/register - Creates user with 1 free credit",
+    "POST /api/auth/login - Returns user with exam_credits",
+    "POST /api/admin/login - Admin authentication",
+    "POST /api/payments/validate-coupon - TESTE10 returns valid=true, 10% discount",
+    "POST /api/payments/validate-coupon - Invalid coupon returns valid=false",
+    "POST /api/payments/checkout - Creates Mercado Pago preference without coupon",
+    "POST /api/payments/checkout - Creates preference with coupon discount applied",
+    "POST /api/payments/checkout - Rejects invalid package_id",
+    "POST /api/payments/checkout - Requires authentication",
+    "GET /api/admin/coupons - Lists all coupons",
+    "POST /api/admin/coupons - Creates new coupon",
+    "POST /api/admin/coupons - Rejects duplicate coupon code",
+    "PATCH /api/admin/coupons/{id} - Toggles coupon active status",
+    "DELETE /api/admin/coupons/{id} - Deletes coupon",
+    "Admin coupon endpoints require admin authentication",
+    "Admin coupon endpoints reject user tokens",
+    "Fixed discount coupon type works correctly",
+    "GET /api/auth/me - Returns user data (after fix)",
+    "GET /api/exams - Returns user's exam list",
+    "User cleanup (LGPD deletion)"
+  ],
+  "failed_tests": [],
+  "test_report_links": [
+    "/app/backend/tests/test_mercadopago_coupons.py",
+    "/app/test_reports/pytest/pytest_mp_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Stripe to Mercado Pago migration completed successfully",
+    "Coupon system implemented with local database storage",
+    "All payment flows use Mercado Pago sandbox credentials",
+    "Previous iteration's FK constraint issue for tenant/user deletion still exists (not in scope for this test)"
+  ],
+  "updated_files": [
+    "/app/backend/server.py (removed stripe_customer_id reference from /api/auth/me)",
+    "/app/backend/tests/test_mercadopago_coupons.py (new test file)"
+  ],
+  "success_rate": {
+    "backend": "100% (22/22 tests passed)",
+    "frontend": "100% (all tested features working)"
+  },
+  "test_credentials": {
+    "admin": {
+      "email": "admin@exagram.com.br",
+      "password": "Exagram@Admin2024"
+    },
+    "existing_coupon": "TESTE10 (10% discount, active)"
+  },
+  "seed_data_creation": "Test coupons created during testing (UITEST20 - 20% discount)",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Mercado Pago payment integration and coupon system fully tested and working. Checkout creates Mercado Pago preferences that redirect to sandbox payment page. Coupon discounts are applied correctly (both percent and fixed types). Admin can manage coupons via /admin dashboard. Previous FK constraint issue for tenant deletion still exists but was not in scope for this iteration.",
+  "features_verified": {
+    "mercado_pago_checkout": {
+      "status": "WORKING",
+      "details": "Creates Mercado Pago preference with correct prices, applies coupon discounts, returns sandbox checkout URL"
+    },
+    "coupon_validation": {
+      "status": "WORKING",
+      "details": "Validates coupon codes, returns discount type and value, handles invalid/expired coupons"
+    },
+    "admin_coupon_crud": {
+      "status": "WORKING",
+      "details": "Create, list, toggle active, delete coupons via admin dashboard"
+    },
+    "user_registration_free_credit": {
+      "status": "WORKING",
+      "details": "New users receive 1 free credit upon registration"
+    },
+    "dashboard_coupon_input": {
+      "status": "WORKING",
+      "details": "Buy credits modal has coupon input field, validates and applies discounts"
+    }
+  }
+}
