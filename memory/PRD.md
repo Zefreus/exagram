@@ -57,13 +57,24 @@ Build a single-purpose multi-tenant SaaS web application called "Exagram" for an
 - Multi-tenant data isolation
 
 ## Tech Stack
-- **Frontend**: React 19, Tailwind CSS, Shadcn/UI
+- **Frontend**: React 18.3, Tailwind CSS, Shadcn/UI, **Vite** (migrado de CRA)
 - **Backend**: FastAPI, Python 3.11
 - **Database**: MySQL (external)
 - **AI**: 
   - Gemini 2.5 Flash (extraction) - GEMINI_API_KEY → EMERGENT_LLM_KEY
   - Claude 4 Sonnet (analysis/chat) - ANTHROPIC_API_KEY → OPENAI_API_KEY → EMERGENT_LLM_KEY
 - **Payments**: Mercado Pago Checkout Pro
+
+## Vercel Deployment - READY ✅
+Frontend was migrated from Create React App (CRA) to **Vite** to solve persistent `ajv` dependency conflicts on Vercel builds.
+
+### Migration Changes (March 13, 2026):
+- Replaced `react-scripts` with `vite` and `@vitejs/plugin-react`
+- Renamed all JSX files from `.js` to `.jsx`
+- Changed environment variables from `REACT_APP_*` to `VITE_*`
+- Updated `index.html` to root directory (Vite convention)
+- Created `vite.config.js` with alias support
+- Build output remains in `/build` directory for compatibility
 
 ## Environment Variables
 ```
