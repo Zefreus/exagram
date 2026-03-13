@@ -528,7 +528,7 @@ async def upload_exam(
         
         # Use Gemini for file analysis (supports file attachments)
         chat = LlmChat(
-            api_key=ANTHROPIC_API_KEY,
+            api_key=EMERGENT_LLM_KEY,
             session_id=f"exam_{str(uuid.uuid4())}",
             system_message="""Você é um especialista em análise de hemogramas. 
 Extraia TODOS os valores do exame de sangue da imagem/PDF fornecido.
