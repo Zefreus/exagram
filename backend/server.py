@@ -169,9 +169,9 @@ async def init_database():
             currency VARCHAR(10),
             credits INT,
             payment_status VARCHAR(50) DEFAULT 'pending',
-            metadata JSON,
+            metadata LONGTEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
+            INDEX idx_tenant_id (tenant_id)
         )"""
     ]
     for query in queries:
