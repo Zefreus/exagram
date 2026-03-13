@@ -91,7 +91,7 @@ async def init_database():
             active BOOLEAN DEFAULT TRUE,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )""",
-        """CREATE TABLE IF NOT EXISTS users (
+        """CREATE TABLE IF NOT EXISTS exa_users (
             id VARCHAR(36) PRIMARY KEY,
             tenant_id VARCHAR(36) UNIQUE,
             email VARCHAR(255) UNIQUE NOT NULL,
@@ -152,7 +152,7 @@ async def init_database():
             user_agent TEXT,
             action ENUM('granted', 'revoked') NOT NULL,
             type ENUM('terms', 'privacy', 'sensitive_data') NOT NULL,
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            FOREIGN KEY (user_id) REFERENCES exa_users(id) ON DELETE CASCADE
         )""",
         """CREATE TABLE IF NOT EXISTS audit_log (
             id VARCHAR(36) PRIMARY KEY,
@@ -306,7 +306,7 @@ async def get_current_admin(credentials: HTTPAuthorizationCredentials = Depends(
 async def register_user(data: UserRegister):
     # Check if user exists
     existing = await execute_query(
-        "SELECT id FROM users WHERE email = %s",
+        "SELECT id FROM exa_users WHERE email = %s",
         (data.email,),
         fetchone=True
     )
@@ -325,7 +325,7 @@ async def register_user(data: UserRegister):
     user_id = str(uuid.uuid4())
     password_hash = bcrypt.hashpw(data.password.encode(), bcrypt.gensalt()).decode()
     await execute_query(
-        "INSERT INTO users (id, tenant_id, email, password_hash, name, created_at) VALUES (%s, %s, %s, %s, %s, NOW())",
+        "INSERT INTO exa_users (id, tenant_id, email, password_hash, name, created_at) VALUES (%s, %s, %s, %s, %s, NOW())",
         (user_id, tenant_id, data.email, password_hash, data.name)
     )
     
@@ -345,7 +345,7 @@ async def register_user(data: UserRegister):
 async def login_user(data: UserLogin):
     user = await execute_query(
         """SELECT u.*, t.name as tenant_name, t.exam_credits, t.plan 
-           FROM users u 
+           FROM exa_users u 
            JOIN exa_tenants t ON u.tenant_id = t.id 
            WHERE u.email = %s AND t.active = TRUE""",
         (data.email,),
@@ -397,7 +397,7 @@ async def login_admin(data: AdminLogin):
 async def get_me(user = Depends(get_current_user)):
     user_data = await execute_query(
         """SELECT u.*, t.name as tenant_name, t.exam_credits, t.plan, t.stripe_customer_id
-           FROM users u 
+           FROM exa_users u 
            JOIN exa_tenants t ON u.tenant_id = t.id 
            WHERE u.id = %s""",
         (user['user_id'],),
@@ -441,7 +441,7 @@ async def grant_consent(data: ConsentGrant, request: Request, user = Depends(get
     
     if all(t in consent_types for t in ['terms', 'privacy', 'sensitive_data']):
         await execute_query(
-            "UPDATE users SET consent_granted = TRUE WHERE id = %s",
+            "UPDATE exa_users SET consent_granted = TRUE WHERE id = %s",
             (user['user_id'],)
         )
     
@@ -467,7 +467,7 @@ async def get_consent_status(user = Depends(get_current_user)):
             }
     
     user_data = await execute_query(
-        "SELECT consent_granted FROM users WHERE id = %s",
+        "SELECT consent_granted FROM exa_users WHERE id = %s",
         (user['user_id'],),
         fetchone=True
     )
@@ -869,7 +869,7 @@ async def admin_get_exa_tenants(admin = Depends(get_current_admin)):
         """SELECT t.*, u.email as user_email, 
            (SELECT COUNT(*) FROM exams WHERE tenant_id = t.id) as exam_count
            FROM exa_tenants t
-           LEFT JOIN users u ON t.id = u.tenant_id
+           LEFT JOIN exa_users u ON t.id = u.tenant_id
            ORDER BY t.created_at DESC""",
         fetch=True
     )
@@ -879,7 +879,7 @@ async def admin_get_exa_tenants(admin = Depends(get_current_admin)):
 async def admin_create_tenant(data: TenantCreate, admin = Depends(get_current_admin)):
     # Check if email exists
     existing = await execute_query(
-        "SELECT id FROM users WHERE email = %s",
+        "SELECT id FROM exa_users WHERE email = %s",
         (data.email,),
         fetchone=True
     )
@@ -897,7 +897,7 @@ async def admin_create_tenant(data: TenantCreate, admin = Depends(get_current_ad
     user_id = str(uuid.uuid4())
     password_hash = bcrypt.hashpw(data.password.encode(), bcrypt.gensalt()).decode()
     await execute_query(
-        "INSERT INTO users (id, tenant_id, email, password_hash) VALUES (%s, %s, %s, %s)",
+        "INSERT INTO exa_users (id, tenant_id, email, password_hash) VALUES (%s, %s, %s, %s)",
         (user_id, tenant_id, data.email, password_hash)
     )
     
@@ -925,7 +925,7 @@ async def admin_delete_tenant(tenant_id: str, admin = Depends(get_current_admin)
         (str(uuid.uuid4()), exam_count['count'], tenant_id)
     )
     
-    # Delete tenant (cascades to users, exams, etc.)
+    # Delete tenant (cascades to exa_users, exams, etc.)
     await execute_query("DELETE FROM exa_tenants WHERE id = %s", (tenant_id,))
     return {"success": True}
 
@@ -1127,7 +1127,7 @@ async def get_packages():
 async def export_user_data(user = Depends(get_current_user)):
     """Export all user data (LGPD access right)"""
     user_data = await execute_query(
-        "SELECT id, email, created_at FROM users WHERE id = %s",
+        "SELECT id, email, created_at FROM exa_users WHERE id = %s",
         (user['user_id'],),
         fetchone=True
     )
