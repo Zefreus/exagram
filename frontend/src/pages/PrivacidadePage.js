@@ -73,7 +73,7 @@ export default function PrivacidadePage() {
                         
                         <p className="mt-4"><strong>Dados de pagamento:</strong></p>
                         <ul className="list-disc list-inside space-y-1 ml-4">
-                            <li>Processados diretamente pelo Stripe</li>
+                            <li>Processados diretamente pelo Mercado Pago</li>
                             <li>Não armazenamos dados de cartão de crédito</li>
                         </ul>
                         
@@ -128,7 +128,7 @@ export default function PrivacidadePage() {
                                 além do necessário para gerar a resposta.
                             </li>
                             <li>
-                                <strong>Stripe:</strong> Processamento de pagamentos. Stripe atua como 
+                                <strong>Mercado Pago:</strong> Processamento de pagamentos. Mercado Pago atua como 
                                 controlador independente para dados de pagamento.
                             </li>
                         </ul>

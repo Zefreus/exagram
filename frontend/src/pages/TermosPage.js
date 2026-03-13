@@ -123,7 +123,7 @@ export default function TermosPage() {
                             <li>O Exagram oferece créditos para análise de exames</li>
                             <li>Novos usuários recebem 1 crédito gratuito</li>
                             <li>Créditos adquiridos expiram em 365 dias</li>
-                            <li>Pagamentos são processados via Stripe de forma segura</li>
+                            <li>Pagamentos são processados via Mercado Pago de forma segura</li>
                             <li>Não há reembolso proporcional de créditos não utilizados</li>
                             <li>Assinaturas podem ser canceladas a qualquer momento</li>
                         </ul>
