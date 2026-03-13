@@ -818,7 +818,8 @@ async def get_exam(exam_id: str, user = Depends(get_current_user)):
     # Get chat messages
     messages = await execute_query(
         """SELECT id, role, content, created_at FROM exa_chat_messages 
-           WHERE exam_id = %s ORDER BY created_at ASC""",
+           WHERE exam_id = %s ORDER BY created_at ASC
+           LIMIT 100""",
         (exam_id,),
         fetch=True
     )
