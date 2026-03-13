@@ -82,7 +82,7 @@ async def init_database():
             password_hash VARCHAR(255) NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )""",
-        """CREATE TABLE IF NOT EXISTS tenants (
+        """CREATE TABLE IF NOT EXISTS exa_tenants (
             id VARCHAR(36) PRIMARY KEY,
             name VARCHAR(255) NOT NULL,
             stripe_customer_id VARCHAR(255),
@@ -98,7 +98,7 @@ async def init_database():
             password_hash VARCHAR(255) NOT NULL,
             consent_granted BOOLEAN DEFAULT FALSE,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
+            FOREIGN KEY (tenant_id) REFERENCES exa_tenants(id) ON DELETE CASCADE
         )""",
         """CREATE TABLE IF NOT EXISTS exams (
             id VARCHAR(36) PRIMARY KEY,
@@ -140,7 +140,7 @@ async def init_database():
             tenant_id VARCHAR(36) NOT NULL,
             month_year VARCHAR(7) NOT NULL,
             exam_count INT DEFAULT 0,
-            FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+            FOREIGN KEY (tenant_id) REFERENCES exa_tenants(id) ON DELETE CASCADE,
             UNIQUE KEY unique_tenant_month (tenant_id, month_year)
         )""",
         """CREATE TABLE IF NOT EXISTS consents (
@@ -317,7 +317,7 @@ async def register_user(data: UserRegister):
     tenant_id = str(uuid.uuid4())
     slug = data.email.split('@')[0] + '_' + tenant_id[:8]
     await execute_query(
-        "INSERT INTO tenants (id, name, slug, plan, exam_credits, active, created_at) VALUES (%s, %s, %s, 'free', 1, TRUE, NOW())",
+        "INSERT INTO exa_tenants (id, name, slug, plan, exam_credits, active, created_at) VALUES (%s, %s, %s, 'free', 1, TRUE, NOW())",
         (tenant_id, data.name, slug)
     )
     
@@ -346,7 +346,7 @@ async def login_user(data: UserLogin):
     user = await execute_query(
         """SELECT u.*, t.name as tenant_name, t.exam_credits, t.plan 
            FROM users u 
-           JOIN tenants t ON u.tenant_id = t.id 
+           JOIN exa_tenants t ON u.tenant_id = t.id 
            WHERE u.email = %s AND t.active = TRUE""",
         (data.email,),
         fetchone=True
@@ -398,7 +398,7 @@ async def get_me(user = Depends(get_current_user)):
     user_data = await execute_query(
         """SELECT u.*, t.name as tenant_name, t.exam_credits, t.plan, t.stripe_customer_id
            FROM users u 
-           JOIN tenants t ON u.tenant_id = t.id 
+           JOIN exa_tenants t ON u.tenant_id = t.id 
            WHERE u.id = %s""",
         (user['user_id'],),
         fetchone=True
@@ -497,7 +497,7 @@ async def upload_exam(
 ):
     # Check credits
     tenant = await execute_query(
-        "SELECT exam_credits FROM tenants WHERE id = %s",
+        "SELECT exam_credits FROM exa_tenants WHERE id = %s",
         (user['tenant_id'],),
         fetchone=True
     )
@@ -621,7 +621,7 @@ Retorne JSON:
         
         # Deduct credit
         await execute_query(
-            "UPDATE tenants SET exam_credits = exam_credits - 1 WHERE id = %s",
+            "UPDATE exa_tenants SET exam_credits = exam_credits - 1 WHERE id = %s",
             (user['tenant_id'],)
         )
         
@@ -847,8 +847,8 @@ async def get_specialist(specialist_id: str):
 
 @api_router.get("/admin/overview")
 async def admin_overview(admin = Depends(get_current_admin)):
-    total_tenants = await execute_query("SELECT COUNT(*) as count FROM tenants", fetchone=True)
-    active_subs = await execute_query("SELECT COUNT(*) as count FROM tenants WHERE plan = 'pro'", fetchone=True)
+    total_exa_tenants = await execute_query("SELECT COUNT(*) as count FROM exa_tenants", fetchone=True)
+    active_subs = await execute_query("SELECT COUNT(*) as count FROM exa_tenants WHERE plan = 'pro'", fetchone=True)
     
     month_year = datetime.now(timezone.utc).strftime('%Y-%m')
     exams_this_month = await execute_query(
@@ -858,24 +858,24 @@ async def admin_overview(admin = Depends(get_current_admin)):
     )
     
     return {
-        "total_tenants": total_tenants['count'],
+        "total_exa_tenants": total_exa_tenants['count'],
         "active_subscriptions": active_subs['count'],
         "exams_this_month": exams_this_month['count']
     }
 
-@api_router.get("/admin/tenants")
-async def admin_get_tenants(admin = Depends(get_current_admin)):
-    tenants = await execute_query(
+@api_router.get("/admin/exa_tenants")
+async def admin_get_exa_tenants(admin = Depends(get_current_admin)):
+    exa_tenants = await execute_query(
         """SELECT t.*, u.email as user_email, 
            (SELECT COUNT(*) FROM exams WHERE tenant_id = t.id) as exam_count
-           FROM tenants t
+           FROM exa_tenants t
            LEFT JOIN users u ON t.id = u.tenant_id
            ORDER BY t.created_at DESC""",
         fetch=True
     )
-    return [dict(t) for t in tenants]
+    return [dict(t) for t in exa_tenants]
 
-@api_router.post("/admin/tenants")
+@api_router.post("/admin/exa_tenants")
 async def admin_create_tenant(data: TenantCreate, admin = Depends(get_current_admin)):
     # Check if email exists
     existing = await execute_query(
@@ -889,7 +889,7 @@ async def admin_create_tenant(data: TenantCreate, admin = Depends(get_current_ad
     # Create tenant
     tenant_id = str(uuid.uuid4())
     await execute_query(
-        "INSERT INTO tenants (id, name, exam_credits) VALUES (%s, %s, 1)",
+        "INSERT INTO exa_tenants (id, name, exam_credits) VALUES (%s, %s, 1)",
         (tenant_id, data.name)
     )
     
@@ -903,15 +903,15 @@ async def admin_create_tenant(data: TenantCreate, admin = Depends(get_current_ad
     
     return {"tenant_id": tenant_id, "user_id": user_id, "email": data.email}
 
-@api_router.patch("/admin/tenants/{tenant_id}")
+@api_router.patch("/admin/exa_tenants/{tenant_id}")
 async def admin_update_tenant(tenant_id: str, active: bool, admin = Depends(get_current_admin)):
     await execute_query(
-        "UPDATE tenants SET active = %s WHERE id = %s",
+        "UPDATE exa_tenants SET active = %s WHERE id = %s",
         (active, tenant_id)
     )
     return {"success": True}
 
-@api_router.delete("/admin/tenants/{tenant_id}")
+@api_router.delete("/admin/exa_tenants/{tenant_id}")
 async def admin_delete_tenant(tenant_id: str, admin = Depends(get_current_admin)):
     # Log deletion
     exam_count = await execute_query(
@@ -926,7 +926,7 @@ async def admin_delete_tenant(tenant_id: str, admin = Depends(get_current_admin)
     )
     
     # Delete tenant (cascades to users, exams, etc.)
-    await execute_query("DELETE FROM tenants WHERE id = %s", (tenant_id,))
+    await execute_query("DELETE FROM exa_tenants WHERE id = %s", (tenant_id,))
     return {"success": True}
 
 # Admin Specialists CRUD
@@ -1044,7 +1044,7 @@ async def get_payment_status(session_id: str, user = Depends(get_current_user)):
             if transaction and transaction['payment_status'] != 'completed':
                 # Add credits
                 await execute_query(
-                    "UPDATE tenants SET exam_credits = exam_credits + %s WHERE id = %s",
+                    "UPDATE exa_tenants SET exam_credits = exam_credits + %s WHERE id = %s",
                     (transaction['credits'], user['tenant_id'])
                 )
                 
@@ -1093,7 +1093,7 @@ async def stripe_webhook(request: Request):
                     tenant_id = metadata['tenant_id']
                     
                     await execute_query(
-                        "UPDATE tenants SET exam_credits = exam_credits + %s WHERE id = %s",
+                        "UPDATE exa_tenants SET exam_credits = exam_credits + %s WHERE id = %s",
                         (credits, tenant_id)
                     )
                     
@@ -1133,7 +1133,7 @@ async def export_user_data(user = Depends(get_current_user)):
     )
     
     tenant_data = await execute_query(
-        "SELECT id, name, plan, exam_credits, created_at FROM tenants WHERE id = %s",
+        "SELECT id, name, plan, exam_credits, created_at FROM exa_tenants WHERE id = %s",
         (user['tenant_id'],),
         fetchone=True
     )
@@ -1194,7 +1194,7 @@ async def delete_user_account(user = Depends(get_current_user)):
     )
     
     # Delete tenant (cascades to user and all data)
-    await execute_query("DELETE FROM tenants WHERE id = %s", (user['tenant_id'],))
+    await execute_query("DELETE FROM exa_tenants WHERE id = %s", (user['tenant_id'],))
     
     return {"success": True, "message": "Conta e todos os dados foram excluídos permanentemente"}
 
