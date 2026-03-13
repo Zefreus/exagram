@@ -163,7 +163,8 @@ export default function DashboardPage() {
         try {
             const response = await api.post('/payments/checkout', {
                 package_id: packageId,
-                origin_url: window.location.origin
+                origin_url: window.location.origin,
+                coupon_code: couponDiscount ? couponCode : null
             });
             
             if (response.data.url) {
@@ -171,6 +172,40 @@ export default function DashboardPage() {
             }
         } catch (error) {
             toast.error('Erro ao iniciar pagamento');
+        }
+    };
+
+    const handleValidateCoupon = async () => {
+        if (!couponCode.trim()) return;
+        
+        setValidatingCoupon(true);
+        try {
+            const response = await api.post('/payments/validate-coupon', {
+                code: couponCode.trim().toUpperCase()
+            });
+            
+            if (response.data.valid) {
+                setCouponDiscount(response.data);
+                toast.success('Cupom aplicado!');
+            } else {
+                setCouponDiscount(null);
+                toast.error(response.data.message || 'Cupom inválido');
+            }
+        } catch (error) {
+            setCouponDiscount(null);
+            toast.error('Erro ao validar cupom');
+        } finally {
+            setValidatingCoupon(false);
+        }
+    };
+
+    const calculateDiscountedPrice = (originalPrice) => {
+        if (!couponDiscount) return originalPrice;
+        
+        if (couponDiscount.discount_type === 'percent') {
+            return originalPrice * (1 - couponDiscount.discount_value / 100);
+        } else {
+            return Math.max(0, originalPrice - couponDiscount.discount_value);
         }
     };
 
