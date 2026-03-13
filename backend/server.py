@@ -315,17 +315,18 @@ async def register_user(data: UserRegister):
     
     # Create tenant first
     tenant_id = str(uuid.uuid4())
+    slug = data.email.split('@')[0] + '_' + tenant_id[:8]
     await execute_query(
-        "INSERT INTO tenants (id, name, exam_credits) VALUES (%s, %s, 1)",
-        (tenant_id, data.name)
+        "INSERT INTO tenants (id, name, slug, plan, exam_credits, active, created_at) VALUES (%s, %s, %s, 'free', 1, TRUE, NOW())",
+        (tenant_id, data.name, slug)
     )
     
     # Create user
     user_id = str(uuid.uuid4())
     password_hash = bcrypt.hashpw(data.password.encode(), bcrypt.gensalt()).decode()
     await execute_query(
-        "INSERT INTO users (id, tenant_id, email, password_hash) VALUES (%s, %s, %s, %s)",
-        (user_id, tenant_id, data.email, password_hash)
+        "INSERT INTO users (id, tenant_id, email, password_hash, name, created_at) VALUES (%s, %s, %s, %s, %s, NOW())",
+        (user_id, tenant_id, data.email, password_hash, data.name)
     )
     
     token = create_token(user_id, 'user', tenant_id, data.email)
