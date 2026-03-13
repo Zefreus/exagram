@@ -112,7 +112,7 @@ async def init_database():
             INDEX idx_user_id (user_id),
             INDEX idx_tenant_id (tenant_id)
         )""",
-        """CREATE TABLE IF NOT EXISTS chat_messages (
+        """CREATE TABLE IF NOT EXISTS exa_chat_messages (
             id VARCHAR(36) PRIMARY KEY,
             exam_id VARCHAR(36) NOT NULL,
             user_id VARCHAR(36) NOT NULL,
@@ -650,7 +650,7 @@ Retorne JSON:
         initial_message = "Analisei seu exame. Ficou alguma dúvida sobre algum valor específico? Pode me perguntar à vontade."
         msg_id = str(uuid.uuid4())
         await execute_query(
-            """INSERT INTO chat_messages (id, exam_id, user_id, role, content)
+            """INSERT INTO exa_chat_messages (id, exam_id, user_id, role, content)
                VALUES (%s, %s, %s, 'assistant', %s)""",
             (msg_id, exam_id, user['user_id'], initial_message)
         )
@@ -693,7 +693,7 @@ async def get_exam(exam_id: str, user = Depends(get_current_user)):
     
     # Get chat messages
     messages = await execute_query(
-        """SELECT id, role, content, created_at FROM chat_messages 
+        """SELECT id, role, content, created_at FROM exa_chat_messages 
            WHERE exam_id = %s ORDER BY created_at ASC""",
         (exam_id,),
         fetch=True
@@ -744,7 +744,7 @@ async def chat_with_exam(exam_id: str, message: ChatMessage, user = Depends(get_
     
     # Get chat history
     history = await execute_query(
-        "SELECT role, content FROM chat_messages WHERE exam_id = %s ORDER BY created_at ASC",
+        "SELECT role, content FROM exa_chat_messages WHERE exam_id = %s ORDER BY created_at ASC",
         (exam_id,),
         fetch=True
     )
@@ -752,7 +752,7 @@ async def chat_with_exam(exam_id: str, message: ChatMessage, user = Depends(get_
     # Save user message
     user_msg_id = str(uuid.uuid4())
     await execute_query(
-        "INSERT INTO chat_messages (id, exam_id, user_id, role, content) VALUES (%s, %s, %s, 'user', %s)",
+        "INSERT INTO exa_chat_messages (id, exam_id, user_id, role, content) VALUES (%s, %s, %s, 'user', %s)",
         (user_msg_id, exam_id, user['user_id'], message.content)
     )
     
@@ -793,7 +793,7 @@ Análise: {json.dumps(analysis, ensure_ascii=False)}"""
         # Save AI response
         ai_msg_id = str(uuid.uuid4())
         await execute_query(
-            "INSERT INTO chat_messages (id, exam_id, user_id, role, content) VALUES (%s, %s, %s, 'assistant', %s)",
+            "INSERT INTO exa_chat_messages (id, exam_id, user_id, role, content) VALUES (%s, %s, %s, 'assistant', %s)",
             (ai_msg_id, exam_id, user['user_id'], response)
         )
         
