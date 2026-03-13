@@ -891,17 +891,18 @@ async def admin_create_tenant(data: TenantCreate, admin = Depends(get_current_ad
     
     # Create tenant
     tenant_id = str(uuid.uuid4())
+    slug = data.email.split('@')[0] + '_' + tenant_id[:8]
     await execute_query(
-        "INSERT INTO exa_tenants (id, name, exam_credits) VALUES (%s, %s, 1)",
-        (tenant_id, data.name)
+        "INSERT INTO exa_tenants (id, name, slug, plan, exam_credits, active, created_at) VALUES (%s, %s, %s, 'free', 1, TRUE, NOW())",
+        (tenant_id, data.name, slug)
     )
     
     # Create user
     user_id = str(uuid.uuid4())
     password_hash = bcrypt.hashpw(data.password.encode(), bcrypt.gensalt()).decode()
     await execute_query(
-        "INSERT INTO exa_users (id, tenant_id, email, password_hash) VALUES (%s, %s, %s, %s)",
-        (user_id, tenant_id, data.email, password_hash)
+        "INSERT INTO exa_users (id, tenant_id, email, password_hash, name, created_at) VALUES (%s, %s, %s, %s, %s, NOW())",
+        (user_id, tenant_id, data.email, password_hash, data.name)
     )
     
     return {"tenant_id": tenant_id, "user_id": user_id, "email": data.email}
