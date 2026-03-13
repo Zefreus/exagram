@@ -167,6 +167,86 @@ class ExagramAPITester:
             print("   ❌ Failed to register user")
             return False
 
+    def test_provided_user_credentials(self):
+        """Test login with provided test user credentials"""
+        print("\n🔍 Testing Provided Test User Credentials...")
+        
+        # Test login with provided credentials
+        login_data = {
+            "email": "testflow@exagram.com",
+            "password": "test123"
+        }
+        
+        success, response = self.test_api_endpoint(
+            'POST', '/auth/login', 200,
+            data=login_data,
+            description="(Test User Login - testflow@exagram.com)"
+        )
+        
+        if success and 'token' in response:
+            print(f"   Test user token obtained: {response['token'][:20]}...")
+            return True
+        else:
+            print("   ❌ Test user login failed - user may not exist yet")
+            return False
+
+    def test_admin_specialist_crud(self):
+        """Test admin specialist CRUD operations"""
+        if not self.admin_token:
+            print("\n⚠️  Skipping specialist CRUD - no admin token")
+            return
+            
+        print("\n🔍 Testing Admin Specialist CRUD...")
+        
+        admin_headers = {'Authorization': f'Bearer {self.admin_token}'}
+        
+        # Create a new specialist
+        specialist_data = {
+            "name": "Dr. Test Specialist",
+            "specialty": "Hematologista",
+            "type": "medico",
+            "city": "São Paulo",
+            "state": "SP",
+            "phone": "(11) 99999-9999",
+            "email": "test.specialist@example.com",
+            "description": "Especialista em análise de hemogramas"
+        }
+        
+        success, response = self.test_api_endpoint(
+            'POST', '/admin/specialists', 200,
+            data=specialist_data,
+            headers=admin_headers,
+            description="(Create Specialist)"
+        )
+        
+        if success and 'id' in response:
+            specialist_id = response['id']
+            print(f"   Specialist created with ID: {specialist_id}")
+            
+            # Update the specialist
+            update_data = {
+                "description": "Updated description for test specialist"
+            }
+            
+            self.test_api_endpoint(
+                'PATCH', f'/admin/specialists/{specialist_id}', 200,
+                data=update_data,
+                headers=admin_headers,
+                description="(Update Specialist)"
+            )
+            
+            # Delete the specialist (cleanup)
+            self.test_api_endpoint(
+                'DELETE', f'/admin/specialists/{specialist_id}', 200,
+                headers=admin_headers,
+                description="(Delete Specialist)"
+            )
+            
+            return True
+        else:
+            print("   ❌ Failed to create specialist")
+            return False
+
     def test_user_endpoints(self):
         """Test user-protected endpoints"""
         if not self.user_token:
