@@ -419,7 +419,7 @@ async def login_admin(data: AdminLogin):
 @api_router.get("/auth/me")
 async def get_me(user = Depends(get_current_user)):
     user_data = await execute_query(
-        """SELECT u.*, t.name as tenant_name, t.exam_credits, t.plan, t.stripe_customer_id
+        """SELECT u.*, t.name as tenant_name, t.exam_credits, t.plan
            FROM exa_users u 
            JOIN exa_tenants t ON u.tenant_id = t.id 
            WHERE u.id = %s""",
@@ -436,8 +436,7 @@ async def get_me(user = Depends(get_current_user)):
         "name": user_data['tenant_name'],
         "exam_credits": user_data['exam_credits'],
         "plan": user_data['plan'],
-        "consent_granted": bool(user_data['consent_granted']),
-        "has_stripe": bool(user_data['stripe_customer_id'])
+        "consent_granted": bool(user_data['consent_granted'])
     }
 
 # ============== CONSENT ROUTES ==============
