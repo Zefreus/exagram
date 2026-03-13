@@ -161,7 +161,7 @@ async def init_database():
             tenant_id VARCHAR(36),
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )""",
-        """CREATE TABLE IF NOT EXISTS payment_transactions (
+        """CREATE TABLE IF NOT EXISTS exa_payment_transactions (
             id VARCHAR(36) PRIMARY KEY,
             tenant_id VARCHAR(36) NOT NULL,
             session_id VARCHAR(255) UNIQUE,
@@ -1013,7 +1013,7 @@ async def create_checkout(data: CheckoutRequest, user = Depends(get_current_user
         
         # Create payment record
         await execute_query(
-            """INSERT INTO payment_transactions (id, tenant_id, session_id, amount, currency, credits, payment_status, metadata)
+            """INSERT INTO exa_payment_transactions (id, tenant_id, session_id, amount, currency, credits, payment_status, metadata)
                VALUES (%s, %s, %s, %s, 'brl', %s, 'pending', %s)""",
             (str(uuid.uuid4()), user['tenant_id'], session.session_id, 
              package['amount'], package['credits'], json.dumps({"package_id": data.package_id}))
@@ -1036,7 +1036,7 @@ async def get_payment_status(session_id: str, user = Depends(get_current_user)):
         if status.payment_status == 'paid':
             # Check if already processed
             transaction = await execute_query(
-                "SELECT payment_status, credits FROM payment_transactions WHERE session_id = %s AND tenant_id = %s",
+                "SELECT payment_status, credits FROM exa_payment_transactions WHERE session_id = %s AND tenant_id = %s",
                 (session_id, user['tenant_id']),
                 fetchone=True
             )
@@ -1050,7 +1050,7 @@ async def get_payment_status(session_id: str, user = Depends(get_current_user)):
                 
                 # Update transaction status
                 await execute_query(
-                    "UPDATE payment_transactions SET payment_status = 'completed' WHERE session_id = %s",
+                    "UPDATE exa_payment_transactions SET payment_status = 'completed' WHERE session_id = %s",
                     (session_id,)
                 )
         
@@ -1083,7 +1083,7 @@ async def stripe_webhook(request: Request):
             if metadata and 'tenant_id' in metadata and 'credits' in metadata:
                 # Check if already processed
                 transaction = await execute_query(
-                    "SELECT payment_status FROM payment_transactions WHERE session_id = %s",
+                    "SELECT payment_status FROM exa_payment_transactions WHERE session_id = %s",
                     (session_id,),
                     fetchone=True
                 )
@@ -1098,7 +1098,7 @@ async def stripe_webhook(request: Request):
                     )
                     
                     await execute_query(
-                        "UPDATE payment_transactions SET payment_status = 'completed' WHERE session_id = %s",
+                        "UPDATE exa_payment_transactions SET payment_status = 'completed' WHERE session_id = %s",
                         (session_id,)
                     )
         
