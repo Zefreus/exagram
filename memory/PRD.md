@@ -34,48 +34,55 @@ The target user is someone who recently received blood exam results, does not ye
 - [x] Color-coded results (normal/borderline/attention)
 - [x] Specialist recommendations
 
-### Billing (Stripe)
+### Billing (Mercado Pago)
 - [x] Credit packages (R$9.90, R$19.90, R$49.90)
 - [x] 1 free credit for new users
-- [x] Stripe Checkout integration
-- [x] Payment status polling
+- [x] Mercado Pago Checkout Pro integration
+- [x] Local coupon system with admin management
+- [x] Coupon types: percentage and fixed value discounts
 
 ### Admin Dashboard
 - [x] Overview statistics
-- [x] Tenant management (CRUD) - FIXED cascade delete
+- [x] Tenant management (CRUD)
 - [x] Specialist management (CRUD)
+- [x] **Coupon management (CRUD)** - NEW
 - [x] Audit log
 
 ### LGPD Compliance
 - [x] Consent wall (terms, privacy, sensitive data)
 - [x] Data export functionality
-- [x] Account deletion - FIXED cascade delete
+- [x] Account deletion with cascade
 - [x] DPO contact information
 - [x] Terms of Use page
 - [x] Privacy Policy page
 
 ## What's Been Implemented
 
-### December 2025 - Bug Fixes & Route Standardization
+### March 2026 - Stripe to Mercado Pago Migration
 
-**Route Fixes Applied:**
-- Standardized all API routes from `exa_*` prefix to clean names:
-  - `/exa_exams/*` → `/exams/*`
-  - `/exa_specialists/*` → `/specialists/*`
-  - `/admin/exa_tenants/*` → `/admin/tenants/*`
-  - `/admin/exa_specialists/*` → `/admin/specialists/*`
+**Payment System Changes:**
+- Removed all Stripe integration
+- Implemented Mercado Pago Checkout Pro (redirect-based)
+- Created local coupon system in database (`exa_coupons` table)
+- Added coupon validation endpoint
+- Updated all references from Stripe to Mercado Pago
 
-**Critical Bug Fixes:**
-- Fixed cascade delete for tenant deletion (admin endpoint)
-- Fixed cascade delete for user account deletion (LGPD endpoint)
-- Fixed admin tenant creation to include slug field
-- Added EMERGENT_LLM_KEY for Gemini Vision integration
+**New Features:**
+- Coupon code input in purchase modal
+- Real-time discount calculation display
+- Admin Coupon Management tab with full CRUD
+- Support for percentage and fixed value discounts
 
-**AI Integration:**
-- Gemini 2.5 Flash for exam file extraction
-- Claude 4 Sonnet for exam analysis and chat
+**Database Changes:**
+- Renamed `stripe_customer_id` → `mp_customer_id`
+- Created `exa_coupons` table
+- Added `coupon_code`, `original_amount`, `discount_amount` to transactions
 
-### Previous Implementation (Backend FastAPI + MySQL)
+**Bug Fixes:**
+- Fixed `/api/auth/me` endpoint (removed stripe reference)
+- Fixed cascade delete for tenants and users
+
+### Previous Implementation
 - User registration with automatic tenant creation
 - User login with JWT tokens
 - Admin login with separate credentials
@@ -83,56 +90,41 @@ The target user is someone who recently received blood exam results, does not ye
 - Exam upload with AI processing (Gemini + Claude)
 - Chat conversation per exam
 - Specialist CRUD operations
-- Stripe checkout integration
-- Payment status verification
 - User data export/deletion APIs
 
-**Frontend (React + Tailwind)**
-- Landing page with features, pricing, CTA sections
-- User registration and login pages
-- LGPD consent flow (2-step modal)
-- Dashboard with exam history, credits, upload zone
-- Exam results page with chat interface
-- Admin login and dashboard
-- Specialists search page
-- Terms of Use and Privacy Policy pages
-- Settings page with LGPD data rights
-
-**Database (MySQL External)**
-- Tables: exa_admins, exa_tenants, exa_users, exa_exams, exa_chat_messages, exa_specialists, exa_usage_tracking, exa_consents, exa_audit_log, exa_payment_transactions
-
-## Test Results (December 2025)
-- Backend: 94% → 100% (after fixes)
-- Frontend: 100%
-- All critical bugs resolved
+## Test Results (March 2026)
+- Backend: 100% (22/22 tests passed)
+- Frontend: 100% (all features working)
+- All payment flows verified with Mercado Pago sandbox
 
 ## Prioritized Backlog
 
-### P0 (Critical) - Completed
+### P0 (Critical) - Completed ✅
 - ✅ User authentication flow
 - ✅ LGPD consent mechanism
 - ✅ Exam upload and AI analysis
 - ✅ Chat interface
 - ✅ Admin dashboard
 - ✅ Cascade delete for tenants/users
+- ✅ **Mercado Pago payment integration**
+- ✅ **Coupon system**
 
 ### P1 (High Priority) - Next Phase
-- [ ] Stripe subscription model (Pro plan)
-- [ ] Stripe webhook handling (invoice.payment_failed)
+- [ ] Mercado Pago webhook handling for automatic credit addition
 - [ ] Credit expiration after 365 days
 - [ ] Automatic data retention (90 days cron job)
-- [ ] Email notifications
+- [ ] Email notifications (payment confirmation)
 
 ### P2 (Medium Priority)
-- [ ] Coupon management in admin (Stripe coupons)
-- [ ] Monthly credit rollover for Pro subscribers
+- [ ] Coupon usage reports
+- [ ] Batch coupon creation
 - [ ] Specialist rating/reviews
 - [ ] Export exam results as PDF
 
 ### P3 (Nice to Have)
 - [ ] Mobile app (React Native)
 - [ ] WhatsApp integration for results
-- [ ] Family account management
+- [ ] PIX direct payment
 - [ ] Multiple language support
 
 ## Tech Stack
@@ -142,7 +134,7 @@ The target user is someone who recently received blood exam results, does not ye
 - **AI**: 
   - Gemini 2.5 Flash (extraction) - uses EMERGENT_LLM_KEY
   - Claude 4 Sonnet (analysis) - uses ANTHROPIC_API_KEY
-- **Payments**: Stripe
+- **Payments**: Mercado Pago (Checkout Pro)
 - **Auth**: JWT with bcrypt
 
 ## Environment Variables Required
@@ -150,7 +142,9 @@ The target user is someone who recently received blood exam results, does not ye
 DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_MYSQL_NAME
 ANTHROPIC_API_KEY
 EMERGENT_LLM_KEY
-STRIPE_SECRET_KEY
+MP_ACCESS_TOKEN
+MP_PUBLIC_KEY
+MP_WEBHOOK_SECRET
 NEXTAUTH_SECRET
 ADMIN_EMAIL, ADMIN_PASSWORD
 DPO_NAME, DPO_EMAIL
@@ -179,10 +173,12 @@ RETENTION_DAYS, CONSENT_VERSION, CREDIT_EXPIRY_DAYS
 ### Specialists
 - GET /api/specialists - List specialists
 
-### Payments
+### Payments (Mercado Pago)
 - GET /api/packages - Get credit packages
-- POST /api/payments/checkout - Create checkout session
-- GET /api/payments/status/{session_id} - Check payment status
+- POST /api/payments/checkout - Create Mercado Pago preference
+- POST /api/payments/validate-coupon - Validate coupon code
+- GET /api/payments/status/{preference_id} - Check payment status
+- POST /api/webhooks/mercadopago - Mercado Pago webhook
 
 ### Admin
 - GET /api/admin/overview - Dashboard stats
@@ -190,9 +186,10 @@ RETENTION_DAYS, CONSENT_VERSION, CREDIT_EXPIRY_DAYS
 - POST /api/admin/tenants - Create tenant
 - PATCH /api/admin/tenants/{id} - Toggle tenant active
 - DELETE /api/admin/tenants/{id} - Delete tenant (cascade)
-- POST /api/admin/specialists - Create specialist
-- PATCH /api/admin/specialists/{id} - Update specialist
-- DELETE /api/admin/specialists/{id} - Delete specialist
+- GET /api/admin/coupons - List coupons
+- POST /api/admin/coupons - Create coupon
+- PATCH /api/admin/coupons/{id}?active={bool} - Toggle coupon
+- DELETE /api/admin/coupons/{id} - Delete coupon
 - GET /api/admin/audit-log - View audit log
 
 ### User Data (LGPD)
@@ -202,10 +199,11 @@ RETENTION_DAYS, CONSENT_VERSION, CREDIT_EXPIRY_DAYS
 ## Test Credentials
 - **Admin**: admin@exagram.com.br / Exagram@Admin2024
 - **User**: Register through /register page (1 free credit)
+- **Test Coupon**: TESTE10 (10% discount)
 
 ## Next Action Items
-1. Implement Stripe webhooks for subscription lifecycle
+1. Implement Mercado Pago webhook for automatic credit addition
 2. Add credit expiration logic
 3. Create automated data retention cron job
-4. Add email notifications for payment failures
+4. Add email notifications for payment confirmation
 5. Test exam upload with real hemogram PDF/images
