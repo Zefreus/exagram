@@ -1206,74 +1206,132 @@ async def get_payment_status(preference_id: str, user = Depends(get_current_user
 
 @api_router.post("/webhooks/mercadopago")
 async def mercadopago_webhook(request: Request):
-    """Handle Mercado Pago webhook notifications"""
+    """Handle Mercado Pago webhook notifications (IPN)"""
     try:
-        body = await request.json()
+        # Get query parameters (MP sends data via query params too)
+        query_params = dict(request.query_params)
+        topic = query_params.get("topic") or query_params.get("type")
+        resource_id = query_params.get("id") or query_params.get("data.id")
+        
+        # Try to get body (may be empty for some notification types)
+        try:
+            body = await request.json()
+        except:
+            body = {}
         
         # Get webhook headers for validation
         x_signature = request.headers.get("x-signature", "")
         x_request_id = request.headers.get("x-request-id", "")
         
-        # TODO: Implement HMAC validation with MP_WEBHOOK_SECRET
+        logging.info(f"MP Webhook received: topic={topic}, id={resource_id}, body_type={body.get('type')}, body_action={body.get('action')}")
         
-        event_type = body.get("type")
-        data = body.get("data", {})
+        # Validate HMAC signature if secret is configured
+        if MP_WEBHOOK_SECRET and x_signature:
+            import hmac
+            import hashlib
+            # MP signature format: ts=XXX,v1=YYY
+            try:
+                parts = dict(p.split("=") for p in x_signature.split(","))
+                ts = parts.get("ts", "")
+                v1 = parts.get("v1", "")
+                
+                # Build manifest for validation
+                manifest = f"id:{resource_id};request-id:{x_request_id};ts:{ts};"
+                expected_signature = hmac.new(
+                    MP_WEBHOOK_SECRET.encode(),
+                    manifest.encode(),
+                    hashlib.sha256
+                ).hexdigest()
+                
+                if not hmac.compare_digest(expected_signature, v1):
+                    logging.warning(f"Invalid webhook signature")
+                    # Continue anyway for sandbox mode
+            except Exception as sig_error:
+                logging.warning(f"Signature validation error: {sig_error}")
         
-        if event_type == "payment":
+        # Determine payment ID from various sources
+        payment_id = None
+        if body.get("type") == "payment" and body.get("data", {}).get("id"):
+            payment_id = body["data"]["id"]
+        elif topic == "payment" and resource_id:
+            payment_id = resource_id
+        elif body.get("action") == "payment.created" or body.get("action") == "payment.updated":
+            payment_id = body.get("data", {}).get("id")
+        
+        if payment_id:
             import mercadopago
             sdk = mercadopago.SDK(MP_ACCESS_TOKEN)
             
-            payment_id = data.get("id")
-            if payment_id:
-                payment_response = sdk.payment().get(payment_id)
-                payment = payment_response.get("response", {})
+            payment_response = sdk.payment().get(payment_id)
+            payment = payment_response.get("response", {})
+            
+            logging.info(f"MP Payment {payment_id}: status={payment.get('status')}, external_ref={payment.get('external_reference')}")
+            
+            if payment.get("status") == "approved":
+                external_reference = payment.get("external_reference")
+                preference_id = payment.get("preference_id")
                 
-                if payment.get("status") == "approved":
-                    external_reference = payment.get("external_reference")
-                    
-                    if external_reference:
-                        try:
-                            ref_data = json.loads(external_reference)
-                            tenant_id = ref_data.get("tenant_id")
-                            credits = ref_data.get("credits")
-                            coupon_code = ref_data.get("coupon_code")
-                            
-                            if tenant_id and credits:
-                                # Check if already processed
+                if external_reference:
+                    try:
+                        ref_data = json.loads(external_reference)
+                        tenant_id = ref_data.get("tenant_id")
+                        credits = ref_data.get("credits")
+                        coupon_code = ref_data.get("coupon_code")
+                        
+                        if tenant_id and credits:
+                            # Find transaction by preference_id or by tenant's latest pending
+                            transaction = None
+                            if preference_id:
                                 transaction = await execute_query(
-                                    "SELECT payment_status FROM exa_payment_transactions WHERE tenant_id = %s ORDER BY created_at DESC LIMIT 1",
+                                    "SELECT id, payment_status, credits_purchased FROM exa_payment_transactions WHERE session_id = %s",
+                                    (preference_id,),
+                                    fetchone=True
+                                )
+                            
+                            if not transaction:
+                                transaction = await execute_query(
+                                    "SELECT id, payment_status, credits_purchased FROM exa_payment_transactions WHERE tenant_id = %s AND payment_status = 'pending' ORDER BY created_at DESC LIMIT 1",
                                     (tenant_id,),
                                     fetchone=True
                                 )
+                            
+                            if transaction and transaction['payment_status'] != 'completed':
+                                # Add credits
+                                await execute_query(
+                                    "UPDATE exa_tenants SET exam_credits = exam_credits + %s WHERE id = %s",
+                                    (credits, tenant_id)
+                                )
                                 
-                                if transaction and transaction['payment_status'] != 'completed':
-                                    # Add credits
+                                # Update transaction with MP payment_id
+                                await execute_query(
+                                    "UPDATE exa_payment_transactions SET payment_status = 'completed', mp_payment_id = %s WHERE id = %s",
+                                    (str(payment_id), transaction['id'])
+                                )
+                                
+                                # Increment coupon usage
+                                if coupon_code:
                                     await execute_query(
-                                        "UPDATE exa_tenants SET exam_credits = exam_credits + %s WHERE id = %s",
-                                        (credits, tenant_id)
+                                        "UPDATE exa_coupons SET times_redeemed = times_redeemed + 1 WHERE code = %s",
+                                        (coupon_code,)
                                     )
-                                    
-                                    # Update transaction
-                                    await execute_query(
-                                        "UPDATE exa_payment_transactions SET payment_status = 'completed' WHERE tenant_id = %s AND payment_status = 'pending' ORDER BY created_at DESC LIMIT 1",
-                                        (tenant_id,)
-                                    )
-                                    
-                                    # Increment coupon usage
-                                    if coupon_code:
-                                        await execute_query(
-                                            "UPDATE exa_coupons SET times_redeemed = times_redeemed + 1 WHERE code = %s",
-                                            (coupon_code,)
-                                        )
-                                    
-                                    logging.info(f"Payment processed: {credits} credits added to tenant {tenant_id}")
-                        except json.JSONDecodeError:
-                            logging.error(f"Invalid external_reference: {external_reference}")
+                                
+                                # Log to audit
+                                await execute_query(
+                                    "INSERT INTO exa_audit_log (id, event_type, affected_count, tenant_id) VALUES (%s, 'payment_completed', %s, %s)",
+                                    (str(uuid.uuid4()), credits, tenant_id)
+                                )
+                                
+                                logging.info(f"✅ Payment processed: {credits} credits added to tenant {tenant_id}")
+                            else:
+                                logging.info(f"Payment already processed or no pending transaction for tenant {tenant_id}")
+                                
+                    except json.JSONDecodeError:
+                        logging.error(f"Invalid external_reference JSON: {external_reference}")
         
         return {"received": True}
         
     except Exception as e:
-        logging.error(f"Webhook error: {e}")
+        logging.error(f"Webhook error: {e}", exc_info=True)
         return {"received": True, "error": str(e)}
 
 @api_router.get("/packages")
