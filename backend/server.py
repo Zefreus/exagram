@@ -135,7 +135,7 @@ async def init_database():
             active BOOLEAN DEFAULT TRUE,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )""",
-        """CREATE TABLE IF NOT EXISTS usage_tracking (
+        """CREATE TABLE IF NOT EXISTS exa_usage_tracking (
             id VARCHAR(36) PRIMARY KEY,
             tenant_id VARCHAR(36) NOT NULL,
             month_year VARCHAR(7) NOT NULL,
@@ -628,7 +628,7 @@ Retorne JSON:
         # Track usage
         month_year = datetime.now(timezone.utc).strftime('%Y-%m')
         await execute_query(
-            """INSERT INTO usage_tracking (id, tenant_id, month_year, exam_count)
+            """INSERT INTO exa_usage_tracking (id, tenant_id, month_year, exam_count)
                VALUES (%s, %s, %s, 1)
                ON DUPLICATE KEY UPDATE exam_count = exam_count + 1""",
             (str(uuid.uuid4()), user['tenant_id'], month_year)
@@ -852,7 +852,7 @@ async def admin_overview(admin = Depends(get_current_admin)):
     
     month_year = datetime.now(timezone.utc).strftime('%Y-%m')
     exa_exams_this_month = await execute_query(
-        "SELECT COALESCE(SUM(exam_count), 0) as count FROM usage_tracking WHERE month_year = %s",
+        "SELECT COALESCE(SUM(exam_count), 0) as count FROM exa_usage_tracking WHERE month_year = %s",
         (month_year,),
         fetchone=True
     )
