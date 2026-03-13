@@ -1101,13 +1101,12 @@ async def create_checkout(data: CheckoutRequest, user = Depends(get_current_user
         
         # Create payment record
         await execute_query(
-            """INSERT INTO exa_payment_transactions (id, tenant_id, session_id, amount, currency, credits, payment_status, metadata)
-               VALUES (%s, %s, %s, %s, 'brl', %s, 'pending', %s)""",
+            """INSERT INTO exa_payment_transactions 
+               (id, tenant_id, session_id, amount, currency, credits_purchased, payment_status, package_id, coupon_code, original_amount, discount_amount, created_at)
+               VALUES (%s, %s, %s, %s, 'BRL', %s, 'pending', %s, %s, %s, %s, NOW())""",
             (str(uuid.uuid4()), user['tenant_id'], preference['id'], 
-             final_price, package['credits'], json.dumps({
-                 "package_id": data.package_id,
-                 "coupon_code": coupon_applied
-             }))
+             final_price, package['credits'], data.package_id, coupon_applied,
+             package['amount'], package['amount'] - final_price if coupon_applied else 0)
         )
         
         return {
