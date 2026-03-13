@@ -794,7 +794,8 @@ async def get_exams(user = Depends(get_current_user)):
     exa_exams = await execute_query(
         """SELECT id, summary, created_at FROM exa_exams 
            WHERE user_id = %s 
-           ORDER BY created_at DESC""",
+           ORDER BY created_at DESC
+           LIMIT 50""",
         (user['user_id'],),
         fetch=True
     )
