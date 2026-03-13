@@ -1159,7 +1159,7 @@ async def get_payment_status(preference_id: str, user = Depends(get_current_user
         
         # Check transaction in our database
         transaction = await execute_query(
-            "SELECT payment_status, credits FROM exa_payment_transactions WHERE session_id = %s AND tenant_id = %s",
+            "SELECT payment_status, credits_purchased, coupon_code FROM exa_payment_transactions WHERE session_id = %s AND tenant_id = %s",
             (preference_id, user['tenant_id']),
             fetchone=True
         )
@@ -1169,9 +1169,10 @@ async def get_payment_status(preference_id: str, user = Depends(get_current_user
             if payment.get("status") == "approved":
                 if transaction and transaction['payment_status'] != 'completed':
                     # Add credits
+                    credits = int(transaction['credits_purchased']) if transaction['credits_purchased'] else 0
                     await execute_query(
                         "UPDATE exa_tenants SET exam_credits = exam_credits + %s WHERE id = %s",
-                        (transaction['credits'], user['tenant_id'])
+                        (credits, user['tenant_id'])
                     )
                     # Update transaction status
                     await execute_query(
@@ -1179,17 +1180,11 @@ async def get_payment_status(preference_id: str, user = Depends(get_current_user
                         (preference_id,)
                     )
                     # Increment coupon usage if applied
-                    metadata = transaction.get('metadata')
-                    if metadata:
-                        try:
-                            meta_dict = json.loads(metadata) if isinstance(metadata, str) else metadata
-                            if meta_dict.get('coupon_code'):
-                                await execute_query(
-                                    "UPDATE exa_coupons SET times_redeemed = times_redeemed + 1 WHERE code = %s",
-                                    (meta_dict['coupon_code'],)
-                                )
-                        except:
-                            pass
+                    if transaction.get('coupon_code'):
+                        await execute_query(
+                            "UPDATE exa_coupons SET times_redeemed = times_redeemed + 1 WHERE code = %s",
+                            (transaction['coupon_code'],)
+                        )
                 
                 return {
                     "status": "complete",
