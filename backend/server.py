@@ -1523,13 +1523,13 @@ async def export_user_data(user = Depends(get_current_user)):
     )
     
     exa_exams = await execute_query(
-        "SELECT id, extracted_data, ai_analysis, summary, created_at FROM exa_exams WHERE user_id = %s",
+        "SELECT id, extracted_data, ai_analysis, summary, created_at FROM exa_exams WHERE user_id = %s LIMIT 1000",
         (user['user_id'],),
         fetch=True
     )
     
     exa_consents = await execute_query(
-        "SELECT type, action, timestamp, consent_version FROM exa_consents WHERE user_id = %s",
+        "SELECT type, action, timestamp, consent_version FROM exa_consents WHERE user_id = %s LIMIT 100",
         (user['user_id'],),
         fetch=True
     )
