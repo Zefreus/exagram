@@ -49,6 +49,9 @@ CREDIT_EXPIRY_DAYS = int(os.environ.get('CREDIT_EXPIRY_DAYS', 365))
 # Anthropic Configuration
 ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY')
 
+# Emergent LLM Key (universal key for all providers)
+EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY', ANTHROPIC_API_KEY)
+
 # Stripe Configuration
 STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY')
 STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', '')
