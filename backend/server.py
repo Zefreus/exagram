@@ -869,7 +869,7 @@ async def chat_with_exam(exam_id: str, message: ChatMessage, user = Depends(get_
     
     # Get chat history
     history = await execute_query(
-        "SELECT role, content FROM exa_chat_messages WHERE exam_id = %s ORDER BY created_at ASC",
+        "SELECT role, content FROM exa_chat_messages WHERE exam_id = %s ORDER BY created_at ASC LIMIT 50",
         (exam_id,),
         fetch=True
     )
