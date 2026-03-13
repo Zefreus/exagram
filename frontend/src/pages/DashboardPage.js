@@ -477,31 +477,83 @@ export default function DashboardPage() {
                             <CardTitle className="text-xl text-[#085041]" style={{ fontFamily: 'Fraunces, serif' }}>
                                 Comprar créditos
                             </CardTitle>
-                            <button onClick={() => setShowPackages(false)} className="text-[#787875] hover:text-[#444441]">
+                            <button onClick={() => {
+                                setShowPackages(false);
+                                setCouponCode('');
+                                setCouponDiscount(null);
+                            }} className="text-[#787875] hover:text-[#444441]">
                                 <X className="w-5 h-5" />
                             </button>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            {packages.map((pkg) => (
-                                <div 
-                                    key={pkg.id}
-                                    className="flex items-center justify-between p-4 bg-[#F1EFE8] rounded-2xl"
-                                >
-                                    <div>
-                                        <p className="font-medium text-[#085041]">{pkg.name}</p>
-                                        <p className="text-sm text-[#787875]">{pkg.credits} análise{pkg.credits > 1 ? 's' : ''}</p>
-                                    </div>
-                                    <Button
-                                        onClick={() => handleBuyCredits(pkg.id)}
-                                        className="bg-[#1D9E75] hover:bg-[#168561] text-white rounded-full"
-                                        data-testid={`buy-package-${pkg.id}`}
-                                    >
-                                        R$ {pkg.amount.toFixed(2).replace('.', ',')}
-                                    </Button>
+                            {/* Coupon input */}
+                            <div className="flex gap-2">
+                                <div className="relative flex-1">
+                                    <Tag className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#787875]" />
+                                    <Input
+                                        type="text"
+                                        placeholder="Código do cupom"
+                                        value={couponCode}
+                                        onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                                        className="pl-10 bg-[#F1EFE8] border-none rounded-xl text-sm"
+                                        data-testid="coupon-input"
+                                    />
                                 </div>
-                            ))}
+                                <Button
+                                    onClick={handleValidateCoupon}
+                                    disabled={validatingCoupon || !couponCode.trim()}
+                                    variant="outline"
+                                    className="rounded-xl border-[#1D9E75] text-[#1D9E75] hover:bg-[#1D9E75] hover:text-white"
+                                    data-testid="validate-coupon-btn"
+                                >
+                                    {validatingCoupon ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Aplicar'}
+                                </Button>
+                            </div>
+                            
+                            {couponDiscount && (
+                                <div className="flex items-center gap-2 text-sm text-[#1D9E75] bg-[#E8F5F0] p-2 rounded-lg">
+                                    <Check className="w-4 h-4" />
+                                    <span>
+                                        Cupom aplicado: {couponDiscount.discount_type === 'percent' 
+                                            ? `${couponDiscount.discount_value}% de desconto`
+                                            : `R$ ${couponDiscount.discount_value.toFixed(2).replace('.', ',')} de desconto`
+                                        }
+                                    </span>
+                                </div>
+                            )}
+                            
+                            {packages.map((pkg) => {
+                                const discountedPrice = calculateDiscountedPrice(pkg.amount);
+                                const hasDiscount = couponDiscount && discountedPrice < pkg.amount;
+                                
+                                return (
+                                    <div 
+                                        key={pkg.id}
+                                        className="flex items-center justify-between p-4 bg-[#F1EFE8] rounded-2xl"
+                                    >
+                                        <div>
+                                            <p className="font-medium text-[#085041]">{pkg.name}</p>
+                                            <p className="text-sm text-[#787875]">{pkg.credits} análise{pkg.credits > 1 ? 's' : ''}</p>
+                                        </div>
+                                        <div className="text-right">
+                                            {hasDiscount && (
+                                                <p className="text-xs text-[#787875] line-through">
+                                                    R$ {pkg.amount.toFixed(2).replace('.', ',')}
+                                                </p>
+                                            )}
+                                            <Button
+                                                onClick={() => handleBuyCredits(pkg.id)}
+                                                className="bg-[#1D9E75] hover:bg-[#168561] text-white rounded-full"
+                                                data-testid={`buy-package-${pkg.id}`}
+                                            >
+                                                R$ {discountedPrice.toFixed(2).replace('.', ',')}
+                                            </Button>
+                                        </div>
+                                    </div>
+                                );
+                            })}
                             <p className="text-xs text-center text-[#787875] mt-4">
-                                Pagamento seguro via Stripe
+                                Pagamento seguro via Mercado Pago
                             </p>
                         </CardContent>
                     </Card>
