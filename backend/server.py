@@ -598,7 +598,7 @@ Retorne JSON:
     "flags": {"hemoglobina": "normal", ...},
     "suggested_exa_specialists": ["Hematologista", ...]
 }"""
-        ).with_model("anthropic", "claude-sonnet-4-20250514")
+        ).with_model("anthropic", "claude-4-sonnet-20250514")
         
         analysis_response = await analysis_chat.send_message(UserMessage(
             text=f"Analise este hemograma: {json.dumps(extracted_data)}"
@@ -781,7 +781,7 @@ Análise: {json.dumps(analysis, ensure_ascii=False)}"""
             api_key=ANTHROPIC_API_KEY,
             session_id=f"chat_{exam_id}",
             system_message=system_prompt
-        ).with_model("anthropic", "claude-sonnet-4-20250514")
+        ).with_model("anthropic", "claude-4-sonnet-20250514")
         
         # Build conversation context
         context = "\n".join([f"{'Usuário' if h['role'] == 'user' else 'Assistente'}: {h['content']}" for h in history])
