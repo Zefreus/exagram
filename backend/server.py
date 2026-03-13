@@ -963,7 +963,7 @@ async def admin_delete_specialist(specialist_id: str, admin = Depends(get_curren
     return {"success": True}
 
 @api_router.get("/admin/audit-log")
-async def admin_get_exa_audit_log(admin = Depends(get_current_admin)):
+async def admin_get_audit_log(admin = Depends(get_current_admin)):
     logs = await execute_query(
         "SELECT * FROM exa_audit_log ORDER BY created_at DESC LIMIT 100",
         fetch=True
