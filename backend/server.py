@@ -800,7 +800,7 @@ Análise: {json.dumps(analysis, ensure_ascii=False)}"""
         from emergentintegrations.llm.chat import LlmChat, UserMessage
         
         chat = LlmChat(
-            api_key=ANTHROPIC_API_KEY,
+            api_key=EMERGENT_LLM_KEY,
             session_id=f"chat_{exam_id}",
             system_message=system_prompt
         ).with_model("anthropic", "claude-4-sonnet-20250514")
