@@ -898,20 +898,17 @@ Valores: {json.dumps(extracted_data, ensure_ascii=False)}
 Análise: {json.dumps(analysis, ensure_ascii=False)}"""
 
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
-        
-        chat = LlmChat(
-            api_key=EMERGENT_LLM_KEY,
-            session_id=f"chat_{exam_id}",
-            system_message=system_prompt
-        ).with_model("anthropic", "claude-4-sonnet-20250514")
-        
         # Build conversation context
         context = "\n".join([f"{'Usuário' if h['role'] == 'user' else 'Assistente'}: {h['content']}" for h in history])
         
-        response = await chat.send_message(UserMessage(
-            text=f"Histórico da conversa:\n{context}\n\nNova mensagem do usuário: {message.content}"
-        ))
+        # Use AI with fallback: Claude -> ChatGPT -> Emergent
+        response, provider_used = await call_ai_with_fallback(
+            system_message=system_prompt,
+            user_message=f"Histórico da conversa:\n{context}\n\nNova mensagem do usuário: {message.content}",
+            session_id=f"chat_{exam_id}"
+        )
+        
+        logging.info(f"Chat response from {provider_used}")
         
         # Save AI response
         ai_msg_id = str(uuid.uuid4())
@@ -922,7 +919,8 @@ Análise: {json.dumps(analysis, ensure_ascii=False)}"""
         
         return {
             "user_message": {"id": user_msg_id, "content": message.content},
-            "ai_response": {"id": ai_msg_id, "content": response}
+            "ai_response": {"id": ai_msg_id, "content": response},
+            "_ai_provider": provider_used
         }
         
     except Exception as e:
