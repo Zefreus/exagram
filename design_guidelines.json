@@ -1,0 +1,240 @@
+{
+  "design_system": {
+    "identity": {
+      "name": "Exagram",
+      "core_values": ["Reassurance", "Clarity", "Warmth", "Human-Centric"],
+      "aesthetic": "Organic, Clean, Airy, Non-Clinical",
+      "target_audience": "Brazilian adults seeking clarity on blood exam results"
+    },
+    "typography": {
+      "font_family": {
+        "headings": "Fraunces, serif",
+        "body": "Manrope, sans-serif",
+        "mono": "JetBrains Mono, monospace"
+      },
+      "weights": {
+        "light": 300,
+        "regular": 400,
+        "medium": 500,
+        "semibold": 600,
+        "bold": 700
+      },
+      "scale": {
+        "h1": "text-4xl md:text-5xl font-semibold tracking-tight text-[#085041]",
+        "h2": "text-3xl md:text-4xl font-medium tracking-tight text-[#085041]",
+        "h3": "text-2xl md:text-3xl font-medium text-[#085041]",
+        "body_lg": "text-lg leading-relaxed text-[#444441]",
+        "body_base": "text-base leading-relaxed text-[#444441]",
+        "caption": "text-sm text-[#444441]/80"
+      },
+      "import_url": "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;400;500;600;700&family=Manrope:wght@300;400;500;600;700&display=swap"
+    },
+    "colors": {
+      "palette": {
+        "primary": {
+          "DEFAULT": "#1D9E75",
+          "foreground": "#FFFFFF",
+          "50": "#E8F5F1",
+          "100": "#C6E8DE",
+          "200": "#9AD6C6",
+          "300": "#6EC4AD",
+          "400": "#4BB599",
+          "500": "#1D9E75",
+          "600": "#168561",
+          "700": "#116B4D",
+          "800": "#0D523A",
+          "900": "#083828"
+        },
+        "background": {
+          "DEFAULT": "#F1EFE8",
+          "paper": "#FFFFFF",
+          "subtle": "#EBE9E1"
+        },
+        "text": {
+          "heading": "#085041",
+          "body": "#444441",
+          "muted": "#787875"
+        },
+        "status": {
+          "success": "#1D9E75",
+          "warning": "#F59E0B",
+          "error": "#EF4444",
+          "info": "#3B82F6"
+        }
+      },
+      "tailwind_config_extension": {
+        "colors": {
+          "border": "hsl(var(--border))",
+          "input": "hsl(var(--input))",
+          "ring": "hsl(var(--ring))",
+          "background": "hsl(var(--background))",
+          "foreground": "hsl(var(--foreground))",
+          "primary": {
+            "DEFAULT": "hsl(var(--primary))",
+            "foreground": "hsl(var(--primary-foreground))"
+          },
+          "secondary": {
+            "DEFAULT": "hsl(var(--secondary))",
+            "foreground": "hsl(var(--secondary-foreground))"
+          },
+          "destructive": {
+            "DEFAULT": "hsl(var(--destructive))",
+            "foreground": "hsl(var(--destructive-foreground))"
+          },
+          "muted": {
+            "DEFAULT": "hsl(var(--muted))",
+            "foreground": "hsl(var(--muted-foreground))"
+          },
+          "accent": {
+            "DEFAULT": "hsl(var(--accent))",
+            "foreground": "hsl(var(--accent-foreground))"
+          },
+          "popover": {
+            "DEFAULT": "hsl(var(--popover))",
+            "foreground": "hsl(var(--popover-foreground))"
+          },
+          "card": {
+            "DEFAULT": "hsl(var(--card))",
+            "foreground": "hsl(var(--card-foreground))"
+          }
+        },
+        "borderRadius": {
+          "lg": "var(--radius)",
+          "md": "calc(var(--radius) - 2px)",
+          "sm": "calc(var(--radius) - 4px)"
+        }
+      }
+    },
+    "layout": {
+      "container": "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8",
+      "spacing": {
+        "section_padding": "py-16 md:py-24",
+        "component_gap": "gap-6 md:gap-8"
+      },
+      "grid": {
+        "dashboard": "grid grid-cols-1 md:grid-cols-12 gap-6",
+        "cards": "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+      }
+    },
+    "components": {
+      "buttons": {
+        "primary": "bg-[#1D9E75] text-white hover:bg-[#168561] rounded-full px-8 py-3 font-medium transition-all shadow-sm hover:shadow-md active:scale-95",
+        "secondary": "bg-white text-[#1D9E75] border border-[#1D9E75]/20 hover:bg-[#F1EFE8] rounded-full px-8 py-3 font-medium transition-all",
+        "ghost": "text-[#444441] hover:bg-[#1D9E75]/10 rounded-full px-6 py-2 transition-all"
+      },
+      "cards": {
+        "base": "bg-white rounded-2xl border border-[#EBE9E1] shadow-sm hover:shadow-md transition-all duration-300 p-6",
+        "interactive": "cursor-pointer hover:-translate-y-1 hover:border-[#1D9E75]/30"
+      },
+      "inputs": {
+        "base": "bg-white border border-[#EBE9E1] rounded-xl px-4 py-3 focus:ring-2 focus:ring-[#1D9E75]/20 focus:border-[#1D9E75] outline-none transition-all placeholder:text-[#787875]/50"
+      },
+      "chat": {
+        "container": "flex flex-col h-[600px] bg-white rounded-3xl border border-[#EBE9E1] shadow-sm overflow-hidden",
+        "message_user": "bg-[#1D9E75] text-white rounded-2xl rounded-tr-sm px-6 py-4 max-w-[80%] self-end shadow-sm",
+        "message_ai": "bg-[#F1EFE8] text-[#444441] rounded-2xl rounded-tl-sm px-6 py-4 max-w-[80%] self-start border border-[#EBE9E1]"
+      }
+    },
+    "visual_enhancers": {
+      "shadows": {
+        "soft": "0 4px 20px -2px rgba(29, 158, 117, 0.05)",
+        "card": "0 2px 8px -1px rgba(0, 0, 0, 0.05)"
+      },
+      "gradients": {
+        "hero": "bg-gradient-to-b from-[#F1EFE8] to-white",
+        "accent": "bg-gradient-to-r from-[#1D9E75] to-[#168561]"
+      },
+      "textures": {
+        "noise": "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E\")"
+      }
+    },
+    "motion": {
+      "transitions": "transition-all duration-300 ease-out",
+      "hover": "hover:-translate-y-1 hover:shadow-lg",
+      "fade_in": "animate-in fade-in duration-500 slide-in-from-bottom-4"
+    },
+    "accessibility": {
+      "contrast_check": "Ensure text #444441 on #F1EFE8 meets APCA standards",
+      "focus_states": "focus-visible:ring-2 focus-visible:ring-[#1D9E75] focus-visible:ring-offset-2",
+      "reduced_motion": "motion-reduce:transition-none motion-reduce:animate-none"
+    }
+  },
+  "image_urls": {
+    "hero": {
+      "url": "https://images.unsplash.com/photo-1679661379426-7542c2ddf84b?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA3MDR8MHwxfHNlYXJjaHw0fHxoYXBweSUyMHBlcnNvbiUyMG91dGRvb3JzJTIwc3VubGlnaHR8ZW58MHx8fHwxNzczNDExNDE0fDA&ixlib=rb-4.1.0&q=85",
+      "alt": "Woman relaxing in a field, representing peace of mind after exam results",
+      "category": "landing_page"
+    },
+    "doctor_placeholder": {
+      "url": "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80",
+      "alt": "Friendly doctor smiling warmly",
+      "category": "specialist_search"
+    },
+    "abstract_bg": {
+      "url": "https://images.unsplash.com/photo-1615486777144-b68f335f398d?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2OTV8MHwxfHNlYXJjaHw0fHxhYnN0cmFjdCUyMHdhdGVyY29sb3IlMjBncmVlbiUyMHRleHR1cmUlMjBzb2Z0fGVufDB8fHx8MTc3MzQxMTQzN3ww&ixlib=rb-4.1.0&q=85",
+      "alt": "Soft green abstract texture",
+      "category": "backgrounds"
+    }
+  },
+  "instructions_to_main_agent": {
+    "setup": [
+      "Update /app/frontend/src/index.css with the new color variables (mapped to HSL).",
+      "Install 'lucide-react' for icons.",
+      "Install 'clsx' and 'tailwind-merge' for class management.",
+      "Ensure 'Fraunces' and 'Manrope' fonts are imported in index.css or index.html."
+    ],
+    "css_variables": {
+      ":root": {
+        "--background": "45 20% 93%",
+        "--foreground": "60 3% 26%",
+        "--card": "0 0% 100%",
+        "--card-foreground": "60 3% 26%",
+        "--popover": "0 0% 100%",
+        "--popover-foreground": "60 3% 26%",
+        "--primary": "161 69% 37%",
+        "--primary-foreground": "0 0% 100%",
+        "--secondary": "45 20% 96%",
+        "--secondary-foreground": "161 69% 37%",
+        "--muted": "45 10% 90%",
+        "--muted-foreground": "60 2% 47%",
+        "--accent": "161 69% 37%",
+        "--accent-foreground": "0 0% 100%",
+        "--destructive": "0 84% 60%",
+        "--destructive-foreground": "0 0% 98%",
+        "--border": "45 10% 85%",
+        "--input": "45 10% 85%",
+        "--ring": "161 69% 37%",
+        "--radius": "0.75rem"
+      }
+    },
+    "general_rules": [
+      "NEVER use pure black (#000000). Use the defined foreground color.",
+      "Use 'Fraunces' for all Headings (h1-h3). Use 'Manrope' for body text.",
+      "Always use rounded-2xl or rounded-3xl for containers to maintain the 'organic' feel.",
+      "Buttons must be pill-shaped (rounded-full).",
+      "The chat interface should feel like a conversation, not a terminal. Use soft bubbles.",
+      "For the 'Exam Upload' area, use a dashed border with a warm background color (bg-primary/5)."
+    ]
+  },
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
+    "You tend to converge toward generic, 'on distribution' outputs. In frontend design, this creates what users call the 'AI slop' aesthetic. Avoid this: make creative, distinctive frontends that surprise and delight.",
+    "Dark colors look good when used independently without gradients. DO NOT use dark colors as gradients",
+    "Don't make generic centered layouts, simplistic gradients, and uniform styling.",
+    "Create depth through layered design elements with z-index hierarchy",
+    "Use glass-morphism effects with backdrop filters (12-24px blur)",
+    "You MUST NOT apply universal transition. Eg: transition: all. This results in breaking transforms. Always add transitions for specific interactive elements like button, input excluding transforms",
+    "You MUST NOT center align the app container, ie do not add .App { text-align: center; } in the css file. This disrupts the human natural reading flow of text",
+    "Always use modern button styles like pill-shaped, or sharp button with interaction animations & color relevant to the app style",
+    "NEVER: use AI assistant Emoji characters like 🤖🧠💭💡🔮🎯📚🎭🎬🎪🎉🎊🎁🎀🎂🍰🎈🎨🎰💰💵💳🏦💎🪙💸🤑📊📈📉💹🔢🏆🥇 etc for icons.",
+    "Every interaction needs micro-animations - hover states, transitions, parallax effects, and entrance animations. Static = dead.",
+    "Use 2-3x more spacing than feels comfortable. Cramped designs look cheap.",
+    "Subtle grain textures, noise overlays, custom cursors, selection states, and loading animations: separates good from extraordinary.",
+    "Main agent relies on these image URLs. Missing categories (especially sponsor logos) = main agent will use placeholder text which is FORBIDDEN",
+    "Prioritize using pre-existing components from src/components/ui when applicable",
+    "Create new components that match the style and conventions of existing components when needed",
+    "Examine existing components to understand the project's component patterns before creating new ones",
+    "Components MUST use named exports (export const ComponentName = ...)",
+    "Pages MUST use default exports (export default function PageName() {...})",
+    "Use 'sonner' for toasts. Sonner component are located in /app/src/components/ui/sonner.tsx"
+  ]
+}
