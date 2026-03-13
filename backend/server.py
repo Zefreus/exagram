@@ -1449,7 +1449,7 @@ async def get_packages():
 @api_router.get("/admin/coupons")
 async def admin_get_coupons(admin = Depends(get_current_admin)):
     coupons = await execute_query(
-        "SELECT * FROM exa_coupons ORDER BY created_at DESC",
+        "SELECT * FROM exa_coupons ORDER BY created_at DESC LIMIT 100",
         fetch=True
     )
     return [{
