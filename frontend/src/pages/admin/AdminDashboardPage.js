@@ -950,6 +950,7 @@ export default function AdminDashboardPage() {
                 {activeTab === 'overview' && <OverviewTab adminApi={adminApi} />}
                 {activeTab === 'tenants' && <TenantsTab adminApi={adminApi} />}
                 {activeTab === 'specialists' && <SpecialistsTab adminApi={adminApi} />}
+                {activeTab === 'coupons' && <CouponsTab adminApi={adminApi} />}
                 {activeTab === 'audit' && <AuditLogTab adminApi={adminApi} />}
             </main>
         </div>
