@@ -993,7 +993,8 @@ async def admin_get_tenants(admin = Depends(get_current_admin)):
            (SELECT COUNT(*) FROM exa_exams WHERE tenant_id = t.id) as exam_count
            FROM exa_tenants t
            LEFT JOIN exa_users u ON t.id = u.tenant_id
-           ORDER BY t.created_at DESC""",
+           ORDER BY t.created_at DESC
+           LIMIT 100""",
         fetch=True
     )
     return [dict(t) for t in exa_tenants]
