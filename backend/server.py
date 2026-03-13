@@ -121,7 +121,7 @@ async def init_database():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             INDEX idx_exam_id (exam_id)
         )""",
-        """CREATE TABLE IF NOT EXISTS specialists (
+        """CREATE TABLE IF NOT EXISTS exa_specialists (
             id VARCHAR(36) PRIMARY KEY,
             name VARCHAR(255) NOT NULL,
             specialty VARCHAR(255) NOT NULL,
@@ -596,7 +596,7 @@ Retorne JSON:
 {
     "summary": "texto do resumo acolhedor",
     "flags": {"hemoglobina": "normal", ...},
-    "suggested_specialists": ["Hematologista", ...]
+    "suggested_exa_specialists": ["Hematologista", ...]
 }"""
         ).with_model("anthropic", "claude-sonnet-4-20250514")
         
@@ -616,7 +616,7 @@ Retorne JSON:
             analysis_data = {
                 "summary": "Seus exames foram processados. Consulte os valores abaixo.",
                 "flags": {},
-                "suggested_specialists": []
+                "suggested_exa_specialists": []
             }
         
         # Deduct credit
@@ -699,16 +699,16 @@ async def get_exam(exam_id: str, user = Depends(get_current_user)):
         fetch=True
     )
     
-    # Get suggested specialists
+    # Get suggested exa_specialists
     analysis = json.loads(exam['ai_analysis']) if exam['ai_analysis'] else {}
-    suggested_specialties = analysis.get('suggested_specialists', [])
+    suggested_specialties = analysis.get('suggested_exa_specialists', [])
     
-    specialists = []
+    exa_specialists = []
     if suggested_specialties:
         placeholders = ','.join(['%s'] * len(suggested_specialties))
-        specialists = await execute_query(
+        exa_specialists = await execute_query(
             f"""SELECT id, name, specialty, type, city, state, phone, website, email, description
-                FROM specialists 
+                FROM exa_specialists 
                 WHERE specialty IN ({placeholders}) AND active = TRUE
                 LIMIT 10""",
             tuple(suggested_specialties),
@@ -728,7 +728,7 @@ async def get_exam(exam_id: str, user = Depends(get_current_user)):
             "content": m['content'],
             "created_at": m['created_at'].isoformat() if m['created_at'] else None
         } for m in messages],
-        "specialists": [dict(s) for s in specialists]
+        "exa_specialists": [dict(s) for s in exa_specialists]
     }
 
 @api_router.post("/exa_exams/{exam_id}/chat")
@@ -808,13 +808,13 @@ Análise: {json.dumps(analysis, ensure_ascii=False)}"""
 
 # ============== SPECIALISTS ROUTES ==============
 
-@api_router.get("/specialists")
-async def get_specialists(
+@api_router.get("/exa_specialists")
+async def get_exa_specialists(
     specialty: Optional[str] = None,
     city: Optional[str] = None,
     state: Optional[str] = None
 ):
-    query = "SELECT * FROM specialists WHERE active = TRUE"
+    query = "SELECT * FROM exa_specialists WHERE active = TRUE"
     params = []
     
     if specialty:
@@ -829,13 +829,13 @@ async def get_specialists(
     
     query += " ORDER BY name ASC LIMIT 50"
     
-    specialists = await execute_query(query, tuple(params) if params else None, fetch=True)
-    return [dict(s) for s in specialists]
+    exa_specialists = await execute_query(query, tuple(params) if params else None, fetch=True)
+    return [dict(s) for s in exa_specialists]
 
-@api_router.get("/specialists/{specialist_id}")
+@api_router.get("/exa_specialists/{specialist_id}")
 async def get_specialist(specialist_id: str):
     specialist = await execute_query(
-        "SELECT * FROM specialists WHERE id = %s AND active = TRUE",
+        "SELECT * FROM exa_specialists WHERE id = %s AND active = TRUE",
         (specialist_id,),
         fetchone=True
     )
@@ -930,18 +930,18 @@ async def admin_delete_tenant(tenant_id: str, admin = Depends(get_current_admin)
     return {"success": True}
 
 # Admin Specialists CRUD
-@api_router.post("/admin/specialists")
+@api_router.post("/admin/exa_specialists")
 async def admin_create_specialist(data: SpecialistCreate, admin = Depends(get_current_admin)):
     specialist_id = str(uuid.uuid4())
     await execute_query(
-        """INSERT INTO specialists (id, name, specialty, type, city, state, phone, website, email, description)
+        """INSERT INTO exa_specialists (id, name, specialty, type, city, state, phone, website, email, description)
            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
         (specialist_id, data.name, data.specialty, data.type, data.city, data.state,
          data.phone, data.website, data.email, data.description)
     )
     return {"id": specialist_id}
 
-@api_router.patch("/admin/specialists/{specialist_id}")
+@api_router.patch("/admin/exa_specialists/{specialist_id}")
 async def admin_update_specialist(specialist_id: str, data: SpecialistUpdate, admin = Depends(get_current_admin)):
     updates = []
     params = []
@@ -952,14 +952,14 @@ async def admin_update_specialist(specialist_id: str, data: SpecialistUpdate, ad
     if updates:
         params.append(specialist_id)
         await execute_query(
-            f"UPDATE specialists SET {', '.join(updates)} WHERE id = %s",
+            f"UPDATE exa_specialists SET {', '.join(updates)} WHERE id = %s",
             tuple(params)
         )
     return {"success": True}
 
-@api_router.delete("/admin/specialists/{specialist_id}")
+@api_router.delete("/admin/exa_specialists/{specialist_id}")
 async def admin_delete_specialist(specialist_id: str, admin = Depends(get_current_admin)):
-    await execute_query("DELETE FROM specialists WHERE id = %s", (specialist_id,))
+    await execute_query("DELETE FROM exa_specialists WHERE id = %s", (specialist_id,))
     return {"success": True}
 
 @api_router.get("/admin/audit-log")
