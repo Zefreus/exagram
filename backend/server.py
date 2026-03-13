@@ -154,7 +154,7 @@ async def init_database():
             type ENUM('terms', 'privacy', 'sensitive_data') NOT NULL,
             FOREIGN KEY (user_id) REFERENCES exa_users(id) ON DELETE CASCADE
         )""",
-        """CREATE TABLE IF NOT EXISTS audit_log (
+        """CREATE TABLE IF NOT EXISTS exa_audit_log (
             id VARCHAR(36) PRIMARY KEY,
             event_type VARCHAR(100) NOT NULL,
             affected_count INT DEFAULT 0,
@@ -921,7 +921,7 @@ async def admin_delete_tenant(tenant_id: str, admin = Depends(get_current_admin)
     )
     
     await execute_query(
-        "INSERT INTO audit_log (id, event_type, affected_count, tenant_id) VALUES (%s, 'tenant_deletion', %s, %s)",
+        "INSERT INTO exa_audit_log (id, event_type, affected_count, tenant_id) VALUES (%s, 'tenant_deletion', %s, %s)",
         (str(uuid.uuid4()), exam_count['count'], tenant_id)
     )
     
@@ -963,9 +963,9 @@ async def admin_delete_specialist(specialist_id: str, admin = Depends(get_curren
     return {"success": True}
 
 @api_router.get("/admin/audit-log")
-async def admin_get_audit_log(admin = Depends(get_current_admin)):
+async def admin_get_exa_audit_log(admin = Depends(get_current_admin)):
     logs = await execute_query(
-        "SELECT * FROM audit_log ORDER BY created_at DESC LIMIT 100",
+        "SELECT * FROM exa_audit_log ORDER BY created_at DESC LIMIT 100",
         fetch=True
     )
     return [dict(l) for l in logs]
@@ -1189,7 +1189,7 @@ async def delete_user_account(user = Depends(get_current_user)):
     )
     
     await execute_query(
-        "INSERT INTO audit_log (id, event_type, affected_count, tenant_id) VALUES (%s, 'user_deletion', %s, %s)",
+        "INSERT INTO exa_audit_log (id, event_type, affected_count, tenant_id) VALUES (%s, 'user_deletion', %s, %s)",
         (str(uuid.uuid4()), exam_count['count'], user['tenant_id'])
     )
     
