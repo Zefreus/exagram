@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Heart, Search, MapPin, Phone, Globe, Mail, ArrowLeft, Loader2 } from 'lucide-react';
 import axios from 'axios';
 
-const API_URL = `${process.env.REACT_APP_BACKEND_URL}/api`;
+const API_URL = `${import.meta.env.VITE_BACKEND_URL}/api`;
 
 const SPECIALTIES = [
     'Todos',
