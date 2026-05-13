@@ -1,183 +1,129 @@
 <analysis>**original_problem_statement**:
-The user wants to build a single-purpose multi-tenant SaaS web application called Exagram for the Brazilian market. The application will analyze blood count exams (hemograma).
+The user wants to build a single-purpose multi-tenant SaaS application called Exagram for the Brazilian market to analyze blood count exams (hemograma). 
+**PRODUCT REQUIREMENTS**:
+- **Target User**: Individuals seeking to understand blood exam results before doctor appointments.
+- **Core Feature**: User uploads exam (PDF/Image) -> consumes credit -> AI extracts data -> AI provides analysis -> chat interface opens for follow-up questions.
+- **Billing Model**: Credit-based with Mercado Pago. New tenants get one free credit. Coupons available.
+- **Architecture**: Multi-tenant with Admin and Tenant roles.
 
-**PRODUCT REQUIREMENTS:**
--   **Target User**: Individuals who have received blood exam results and want to understand them before a doctor's appointment.
--   **Architecture**: Multi-tenant with 'Admin' and 'Tenant' roles. Admins manage tenants, and each tenant has a single user account.
--   **Tech Stack**:
-    -   Frontend: React with TypeScript and Tailwind CSS. (Agent used JavaScript).
-    -   Backend: FastAPI (Python).
-    -   Database: External MySQL.
-    -   AI: Fallback logic: Anthropic Claude -> OpenAI ChatGPT -> Emergent LLM.
-    -   Payments: Mercado Pago for one-time credit purchases.
--   **Core Feature**: A user uploads their exam (PDF or images), a credit is consumed, AI extracts the data, provides a conversational analysis, and a chat interface opens for follow-up questions.
--   **Specialist Matching**: Suggest medical specialists based on abnormal exam results.
--   **Billing Model**: A credit-based system with one-time purchase packages. New tenants get one free credit. Coupon system for discounts.
--   **Admin Dashboard**: For managing tenants, specialists, and coupons.
--   **LGPD Compliance**: Strict adherence to Brazilian data protection law.
+**User's preferred language**: Portuguese (Brazil) (You MUST automatically detect the user's primary language from their messages inside the <trajectory> tag and INSTRUCT next agent to respond in the user's preferred language only. All responses must be in Portuguese).
 
-**User's preferred language**: Portuguese (Brazil)
-
-**what currently exists?**
-A full-stack application with a FastAPI backend and a React frontend. The backend connects to an external user-provided MySQL database. Core features are implemented and working in the local preview environment, including user/admin authentication, exam upload and AI analysis, AI chat, and Mercado Pago integration with a coupon system. An AI fallback mechanism (Claude -> ChatGPT -> Emergent LLM) is in place.
-
-The primary unresolved issue is the failure to deploy the frontend to Vercel due to a persistent build error.
+**what currently exists?** 
+A full-stack application with a React (Vite) frontend, FastAPI backend, and an external user-provided MySQL database. Core features including AI analysis (via emergentintegrations), chat, Mercado Pago payments, and admin dashboards are implemented. The frontend was just successfully migrated from Create React App to Vite to fix persistent Vercel build errors.
 
 **Last working item**:
--   Last item agent was working: The agent was debugging a recurring build failure on Vercel. The latest attempt involved trying to fix an  dependency conflict that occurs with  on Node.js v20+ by downgrading  and  and using  in .
--   Status: BLOCKED
--   Agent Testing Done: Y (Local build works, Vercel deploy fails)
--   Which testing method agent to use? Manual testing by user
--   User Testing Done: N
+- Last item agent was working: Answering user questions regarding the database configuration and discussing options for a new WhatsApp integration flow.
+- Status: NONE (Transitioning to planning new WhatsApp feature).
+- Agent Testing Done: Y (Local Vite build successfully tested).
+- Which testing method agent to use? NA
+- User Testing Done: N/A
 
 **All Pending/In progress Issue list**:
--   **Issue 1 (P0): Vercel Frontend Deployment Fails.** This is the highest priority and a complete blocker for production.
-
-  Issues Detail:
-  - Issue 1: Vercel Frontend Deployment Fails
-     - **Error Message**: 
-     - **Context**: The error occurs during the  step on Vercel's build environment (Node.js v20+). It seems to stem from a dependency of  ( ->  ->  or ) which has an incompatibility with newer Node.js versions.
-     - **Attempted fixes**:
-        1.  Pinning Node.js to . Failed because Vercel only offered  and higher.
-        2.  Removing  and using  directly, converting all path aliases () to relative paths.
-        3.  Adding  and  as direct dependencies with specific versions.
-        4.  Using  in  to force specific  versions (, then ).
-        5.  All attempts resulted in the same or a similar  related error on Vercel, even though the local build (yarn run v1.22.22
-info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.) succeeds.
-     - **Next debug checklist**:
-        - Investigate upgrading  to the latest version, which might have better compatibility with newer Node.js versions and updated dependencies.
-        - Alternatively, explore ejecting from Create React App to gain full control over the webpack configuration and its dependencies, allowing a direct fix for the  version conflict.
-        - Check the exact versions of  and  being installed by  to identify the root of the dependency chain causing the issue.
-     - **Why fix this issue and what will be achieved with the fix?**: The frontend cannot be deployed to production until this build error is resolved.
-     - **Status**: BLOCKED
-     - **Is recurring issue?**: Y
-     - **Should Test frontend/backend/both after fix?**: Frontend
-     - **Blocked on other issue**: None
+Issue 1: Production Backend Hosting & Vercel Connection (P1)
+  - Attempted fixes: The Vite migration fixed the Vercel build, but the user attempted to log in on Vercel and it failed. The agent explained that Vercel only hosts the frontend and the  is missing because the backend (FastAPI) isn't deployed to a permanent host yet. 
+  - Next debug checklist: Ask the user to clarify if they still want the web version fully deployed (requires deploying the backend to a service like Railway/Render) OR if they want to abandon the full web app in favor of a static landing page + WhatsApp bot.
+  - Why fix this issue and what will be achieved with the fix?: The current Vercel frontend is a hollow shell without a deployed backend to connect to.
+  - Status: USER VERIFICATION PENDING
+  - Is recurring issue? N
+  - Should Test frontend/backend/both after fix? Both
+  - Blocked on other issue: None
 
 **In progress Task List**:
--   None. The deployment issue is the sole focus.
+- None
 
-**Upcoming and Future Tasks**
--   **Task 1 (P1): Refactor Backend**: Break down the monolithic  into a modular structure (e.g., routes, models, services) for better maintainability.
--   **Task 2 (P1): Enhance Admin Dashboard**: Implement full CRUD for specialists.
--   **Task 3 (P1): Implement Specialist Matching**: Implement the backend logic to suggest specialists based on exam results and display them on the frontend.
--   **Task 4 (P2): Create a comprehensive README.md**: The agent started this but it should be completed to explain setup, environment variables, and how to run the project locally.
+**Upcoming and Future Tasks**:
+- **Task 1 (P0): WhatsApp Integration Planning & Implementation**. (New User Request: Map the existing upload -> AI analysis -> chat flow into a WhatsApp bot. Will require integration with Twilio or Evolution API, creating webhooks on the backend, and handling credit consumption via chat).
+- **Task 2 (P1): Refactor Backend**. Break down the monolithic  into a modular structure (routes, models, services).
+- **Task 3 (P1): Implement Specialist Matching**. Suggest medical specialists based on abnormal exam results.
+- **Task 4 (P2): Enhance Admin Dashboard**. Implement full CRUD for specialists.
 
 **Completed work in this session**
-- **Stripe to Mercado Pago Migration**: Replaced the entire payment flow from Stripe to Mercado Pago, including checkout and webhook logic. (DONE)
-- **Coupon System**: Implemented a full coupon system (create, list, validate) on the backend and integrated it into the frontend admin dashboard and user checkout flow. (DONE)
-- **AI Fallback Logic**: Implemented a fallback mechanism for AI calls: **Claude -> ChatGPT -> Emergent LLM**, using the appropriate API keys for each. (DONE)
-- **Core Exam Analysis and Chat**: Successfully implemented and tested the end-to-end flow of uploading an exam, getting AI analysis and flags, and chatting about the results. (DONE)
-- **API Route Standardization**: Cleaned up backend API routes, removing the  prefix from endpoints for consistency (e.g.,  to ). (DONE)
-- **Database Integrity Fixes**: Resolved foreign key constraint errors on deletion by ensuring records are deleted in the correct order. (DONE)
-- **Query Optimization**: Added  clauses to database queries to prevent potential timeouts in production, as flagged by the deployment agent. (DONE)
-- **GitHub Preparation**: Created  files and updated  to securely prepare the repository for a public push. (DONE)
+- React Vite Migration (DONE) - Migrated from CRA to Vite to solve Vercel  dependency conflict.
+-  to  renaming (DONE)
+- Environment Variables update ( to ) (DONE)
+- Vite config and Vercel routing setup (DONE)
 
 **Earlier issues found/mentioned but not fixed**
--   None.
+- None
 
 **Known issue recurrence from previous fork**
--   None.
+- Issue recurrence in previous fork: Vercel deployment blocked by CRA dependency conflict ().
+- Recurrence count: 1
+- Status: RESOLVED (via Vite migration)
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Frontend**: React (with Create React App), Tailwind CSS, Shadcn UI
--   **Backend**: FastAPI (Python)
--   **Database**: External MySQL
--   **Authentication**: JWT-based
--   **Payments**: Mercado Pago
--   **AI**:  library to handle multiple providers (Anthropic, OpenAI, Gemini) with a fallback system.
+- Frontend: React (Vite), Tailwind CSS, Shadcn UI
+- Backend: FastAPI (Python)
+- Database: External MySQL
+- Authentication: JWT-based
+- Payments: Mercado Pago
+- AI:  handling fallback (Claude -> ChatGPT -> Emergent LLM).
 
 **key DB schema**
--   **exa_tenants**: {id, name, slug, mp_customer_id, plan, exam_credits, active, created_at}
--   **exa_users**: {id, tenant_id, email, password_hash, created_at, consent_granted}
--   **exa_exams**: {id, user_id, tenant_id, extracted_data, ai_analysis, flags, created_at}
--   **exa_payment_transactions**: {id, tenant_id, user_id, package_id, mp_payment_id, ...}
--   **exa_coupons**: {id, code, discount_percentage, max_uses, uses, expires_at, active}
+- exa_tenants: {id, name, slug, mp_customer_id, plan, exam_credits, active, created_at}
+- exa_users: {id, tenant_id, email, password_hash, created_at, consent_granted}
+- exa_exams: {id, user_id, tenant_id, extracted_data, ai_analysis, flags, created_at}
+- exa_payment_transactions: {id, tenant_id, user_id, package_id, mp_payment_id}
+- exa_coupons: {id, code, discount_percentage, max_uses, uses, expires_at, active}
 
 **changes in tech stack**
--   **Stripe -> Mercado Pago**: Payment provider was migrated from Stripe to Mercado Pago.
+- Frontend build tool changed from Create React App to **Vite**.
 
 **All files of reference**
--   : The monolithic backend application file containing all logic.
--   : Contains all frontend dependencies and build scripts. The  section was added to debug the build issue.
--   : Frontend page for exam upload and history.
--   : Frontend for admin functionalities like coupon management.
--   , , : Configuration files added to debug the Vercel deployment.
+-  & : Updated/Created for Vite configuration.
+- : Monolithic backend containing all logic.
 
 **Areas that need refactoring**:
--    is now over 1600 lines and urgently needs to be broken down into a modular structure (routes, services, models).
--   The frontend dependency tree is fragile, as evidenced by the Vercel build issues. It would benefit from an audit and update of outdated packages.
+-  is over 1600 lines and urgently needs modularization.
 
 **key api endpoints**
--   
--   
--   
--   
--   
--   
--   
--   
--   
+- POST /api/auth/register, POST /api/auth/login
+- POST /api/exams/upload, GET /api/exams/{exam_id}, POST /api/exams/{exam_id}/chat
+- POST /api/payments/checkout, POST /api/payments/webhook
 
 **Critical Info for New Agent**
--   **Vercel Deployment is BLOCKED**: The absolute priority is to solve the frontend build error on Vercel: . Local builds work, but the Vercel environment fails. You must solve this before proceeding with any other task.
--   **External MySQL**: The application relies on an external MySQL database. The deployment agent will flag this, but it's the user's intended setup and can be ignored.
--   **Monolithic Backend**: All backend logic is in . While functional, it's a high-priority candidate for refactoring once the deployment is stable.
+- **Vite Environment Variables**: The frontend now uses Vite. You MUST use  instead of . 
+- **Strategic Pivot (WhatsApp)**: The user is extremely satisfied with the core AI logic but is hesitating on managing web hosting. They have requested transitioning the core flow to **WhatsApp**. Your first action should be to use  to propose a concrete plan for WhatsApp integration (e.g., via Twilio integration) and clarify if they still want the full web app or just a landing page alongside the WhatsApp bot.
+- **Mandatory Subagent usage**: If you implement Twilio or any WhatsApp API, you MUST use .
 
 **documents and test reports created in this job**
--   /app/memory/PRD.md (updated multiple times)
--   /app/test_reports/iteration_3.json
--   /app/test_reports/iteration_4.json
--   /app/test_reports/iteration_5.json
--   /app/backend/.env.example
--   /app/frontend/.env.example
--   /app/frontend/jsconfig.json
--   /app/frontend/.npmrc
--   /app/frontend/.nvmrc
--   /app/vercel.json
+- /app/memory/PRD.md
 
 **Last 10 User Messages and any pending HUMAN messages**
-1. User provided a new Vercel build error log.
-2. Agent identified the error () was due to an  incompatibility.
-3. User confirmed they can use Node.js v20.x on Vercel.
-4. Agent configured the project for Node 20.x and tested the build locally.
-5. User provided a new Vercel build error log, showing the same error even with Node 20.x.
-6. Agent tried forcing  versions via  in .
-7. User provided a new Vercel build error log, showing a different error: .
-8. Agent downgraded  and  to older, compatible versions.
-9. User provided a new Vercel build error log, showing the original  error again.
-10. Agent's last action was to try a different combination of dependencies and re-test the local build.
+1. User asked which test user has credits. (Resolved)
+2. User stated the username and password are not working. (Resolved)
+3. User confirmed they copy-pasted the credentials. (Resolved)
+4. User revealed they are testing on their live Vercel URL, not the preview URL. (Resolved - agent explained lack of backend connection)
+5. User stated the Vercel app is calling the wrong API URL. (Resolved - agent explained  environment variable is missing)
+6. User stated they want to use the Vercel URL, not the Emergent preview URL. (Resolved - agent explained the need for a separate backend host like Railway)
+7. User expressed not wanting to depend on Emergent for hosting, asked if they can transform it to just a landing page. (Resolved - agent provided options)
+8. User changed topic, praising the AI functionality on real data, and asked how to integrate this service with WhatsApp. (Pending discussion/implementation)
+9. User asked what database is currently being used. (Resolved - agent confirmed it's the user's external MySQL).
 
 **Project Health Check:**
--   **Broken**:
-    -   Frontend Deployment on Vercel.
--   **Mocked**:
-    -   None. Core features are implemented.
+- Broken: Vercel deployment lacks a live production backend to point to.
+- Mocked: None. Core features use real APIs and DBs.
 
 **3rd Party Integrations**
--   **Anthropic Claude**: User-provided API Key. Used in AI fallback.
--   **OpenAI ChatGPT**: User-provided API Key. Used in AI fallback.
--   **Gemini**: User-provided API Key. Used for exam data extraction.
--   **Emergent LLM Key**: Used as the final AI provider in the fallback chain.
--   **Mercado Pago**: API keys are in . Used for all payments.
--   **MySQL**: Credentials for an external database are in .
+- Anthropic Claude (User API Key)
+- OpenAI ChatGPT (User API Key)
+- Gemini (User API Key)
+- Emergent LLM Key (Fallback AI)
+- Mercado Pago (User API Key)
+- MySQL (External User DB)
 
 **Testing status**
--   Testing agent used after significant changes: YES (Last run: , all tests passed).
--   Troubleshoot agent used after agent stuck in loop: NO
--   Test files created: []
--   Known regressions: None functionally, but the build process has regressed and is failing on Vercel.
+- Testing agent used after significant changes: NO (Self-tested via local Vite build and screenshot)
+- Troubleshoot agent used after agent stuck in loop: NO
+- Test files created: []
+- Known regressions: None
 
 **Credentials to test flow:**
--   **User with 10 credits**:
-    -   Email: 
-    -   Password: 
--   **Admin**:
-    -   Email: 
-    -   Password: 
+- User:  / 
+- Admin:  / 
 
 **What agent forgot to execute**
--   The agent did not manage to solve the Vercel deployment blocker, despite multiple attempts. The core issue of dependency conflicts with  on newer Node.js versions remains unresolved.</analysis>
+- The agent answered the user's question about the database but did not solidify the plan for the requested WhatsApp integration. The next agent needs to immediately pick up the conversation regarding how to architect the WhatsApp flow.</analysis>
