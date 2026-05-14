@@ -1,0 +1,59 @@
+# Exagram — Regras para Cursor
+
+## Contexto do Projeto
+SaaS brasileiro para análise de hemogramas com IA.
+- **Frontend**: React 19 + Vite + Tailwind CSS + Shadcn/UI
+- **Backend**: FastAPI (Python 3.11) + MySQL (aiomysql)
+- **Auth**: JWT | **Pagamentos**: Mercado Pago | **IA**: emergentintegrations
+
+## Regras Críticas
+
+### Frontend
+- SEMPRE usar `import.meta.env.VITE_BACKEND_URL` — NUNCA `process.env.REACT_APP_*`
+- SEMPRE usar `yarn` para pacotes — NUNCA `npm install`
+- Iniciar dev com `yarn dev` (não `yarn start`)
+- Importar componentes Shadcn de `src/components/ui/`
+- Usar `lucide-react` para ícones — não usar emojis como ícone
+- Toasts via `sonner` (`src/components/ui/sonner.jsx`)
+- Todas as chamadas de API devem usar o header `Authorization: Bearer <token>`
+
+### Backend
+- SEMPRE prefixar rotas com `/api` (o `api_router` já faz isso)
+- Queries MySQL via helper `execute_query()` já definido em `server.py`
+- Senhas: bcrypt com `bcrypt.hashpw(pwd.encode(), bcrypt.gensalt()).decode()`
+- Usar `Depends(get_current_user)` para proteger rotas de usuário
+- Usar `Depends(get_admin_user)` para proteger rotas de admin
+- Iniciar backend com `uvicorn server:app --reload --port 8001`
+
+### Geral
+- Não criar arquivos `.env` com valores reais no repositório
+- Idioma da interface: **Português Brasileiro**
+- Mensagens de erro para o usuário: Português
+- Comentários de código: Português
+
+## Estrutura de Páginas
+```
+src/pages/
+  LandingPage.jsx       → /
+  LoginPage.jsx         → /login
+  RegisterPage.jsx      → /register
+  DashboardPage.jsx     → /dashboard  (lista de exames + créditos)
+  ExamResultPage.jsx    → /exam/:id   (resultado + chat)
+  SpecialistsPage.jsx   → /specialists
+  SettingsPage.jsx      → /settings
+  ConsentPage.jsx       → /consent
+  admin/
+    AdminLoginPage.jsx  → /admin/login
+    AdminDashboardPage.jsx → /admin
+```
+
+## Endpoints Principais
+- POST `/api/auth/login` — login usuário
+- POST `/api/admin/login` — login admin
+- POST `/api/exams/upload` — upload e análise de exame (consome 1 crédito)
+- POST `/api/exams/{id}/chat` — chat sobre exame
+- POST `/api/payments/checkout` — criar preferência Mercado Pago
+
+## Credenciais de Teste
+- Usuário: `teste@exagram.com.br` / `Teste123!`
+- Admin: `admin@exagram.com.br` / `Exagram@Admin2024` (rota `/admin/login`)
